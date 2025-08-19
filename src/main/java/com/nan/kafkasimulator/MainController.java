@@ -2,6 +2,7 @@ package com.nan.kafkasimulator;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -11,14 +12,16 @@ import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import java.net.URL;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-public class MainController {
+public class MainController implements Initializable {
 
     @FXML
     private TextField bootstrapServersField;
@@ -28,6 +31,12 @@ public class MainController {
 
     @FXML
     private TextArea logArea;
+
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        // 设置 Kafka 集群地址输入框的默认值
+        bootstrapServersField.setText("localhost:9092");
+    }
 
     @FXML
     protected void onConnectButtonClick() {
