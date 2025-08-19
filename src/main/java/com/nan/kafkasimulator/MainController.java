@@ -3,38 +3,36 @@ package com.nan.kafkasimulator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DescribeClusterResult;
-import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.admin.TopicDescription;
+import javafx.scene.control.*;
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import java.net.URL;
+import org.apache.kafka.common.Node;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class MainController implements Initializable {
 
     @FXML
     private TextField bootstrapServersField;
-
     @FXML
     private Button connectButton;
-
     @FXML
     private TextArea logArea;
+    @FXML
+    private TextField newTopicNameField;
+    @FXML
+    private TextField numPartitionsField;
+    @FXML
+    private TextField replicationFactorField;
+    @FXML
+    private ListView<String> topicsListView;
+
+    private AdminClient adminClient;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        // 设置 Kafka 集群地址输入框的默认值
         bootstrapServersField.setText("localhost:9092");
     }
 
@@ -48,60 +46,124 @@ public class MainController implements Initializable {
 
         appendToLog("正在尝试连接到 Kafka 集群: " + bootstrapServers);
 
-        // 创建 Kafka AdminClient 实例来测试连接
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "kafka-simulator-test-group");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringDeserializer");
 
-        try (Admin adminClient = AdminClient.create(props)) {
-            displayClusterMetadata(adminClient);
+        try {
+            if (adminClient != null) {
+                adminClient.close();
+            }
+            adminClient = AdminClient.create(props);
+
+            // 验证连接并获取元数据
+            displayClusterMetadata();
             appendToLog("成功连接到 Kafka 集群！");
-        } catch (ExecutionException | InterruptedException e) {
-            appendToLog("连接失败: " + e.getCause().getMessage());
+
+            Thread.sleep(1000);
+            // 刷新 Topic 列表
+            refreshTopicsList();
         } catch (Exception e) {
-            appendToLog("连接失败: " + e.getMessage());
+            appendToLog("连接失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
     }
 
-    private void displayClusterMetadata(Admin adminClient) throws ExecutionException, InterruptedException {
-        // 获取并打印 Broker 信息
+    private void displayClusterMetadata() throws ExecutionException, InterruptedException {
+        if (adminClient == null)
+            return;
         DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-        Collection<org.apache.kafka.common.Node> nodes = describeClusterResult.nodes().get();
+        Collection<Node> nodes = describeClusterResult.nodes().get();
+
         appendToLog("\n--- Broker 信息 ---");
-        for (org.apache.kafka.common.Node node : nodes) {
+        for (Node node : nodes) {
             appendToLog("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
         }
+    }
 
-        // 获取并打印所有 Topic 的信息
-        ListTopicsResult listTopicsResult = adminClient.listTopics();
-        Set<String> topicNames = listTopicsResult.names().get();
+    @FXML
+    protected void onRefreshTopicsButtonClick() {
+        refreshTopicsList();
+    }
 
-        appendToLog("\n--- Topic 和分区信息 ---");
-        if (topicNames.isEmpty()) {
-            appendToLog("集群中没有 Topic。");
+    private void refreshTopicsList() {
+        if (adminClient == null) {
+            appendToLog("错误: 请先连接到 Kafka 集群。");
             return;
         }
 
-        Map<String, TopicDescription> topicDescriptions = adminClient.describeTopics(topicNames).allTopicNames().get();
-        for (Map.Entry<String, TopicDescription> entry : topicDescriptions.entrySet()) {
-            TopicDescription topicDescription = entry.getValue();
-            appendToLog("Topic: " + topicDescription.name());
-            topicDescription.partitions().forEach(partition -> {
-                appendToLog("  - 分区 " + partition.partition() + ":");
-                appendToLog("    - Leader: " + partition.leader().id() + " (Broker " + partition.leader().host() + ")");
-                appendToLog("    - 副本 (Replicas): " + partition.replicas().stream()
-                        .map(node -> String.valueOf(node.id())).reduce((a, b) -> a + ", " + b).orElse("无"));
-                appendToLog("    - 同步副本 (ISRs): " + partition.isr().stream().map(node -> String.valueOf(node.id()))
-                        .reduce((a, b) -> a + ", " + b).orElse("无"));
+        appendToLog("正在刷新 Topic 列表...");
+        try {
+            System.out.println("DEBUG: 正在调用 listTopics()。");
+            Set<String> topicNames = adminClient.listTopics().names().get();
+            System.out.println("DEBUG: 从 Kafka 获取到的 Topic 列表数量：" + topicNames.size());
+            topicNames.forEach(name -> System.out.println("DEBUG: 获取到 Topic: " + name));
+
+            Platform.runLater(() -> {
+                topicsListView.getItems().clear();
+                topicsListView.getItems().addAll(topicNames);
+
+                appendToLog("Topic 列表刷新成功。");
+                System.out.println("DEBUG: ListView 已更新。");
             });
+        } catch (ExecutionException | InterruptedException e) {
+            appendToLog("刷新 Topic 列表失败: " + e.getMessage());
+            e.printStackTrace(); // 打印完整的堆栈信息
+        }
+    }
+
+    @FXML
+    protected void onCreateTopicButtonClick() {
+        if (adminClient == null) {
+            appendToLog("错误: 请先连接到 Kafka 集群。");
+            return;
+        }
+
+        String topicName = newTopicNameField.getText();
+        if (topicName == null || topicName.trim().isEmpty()) {
+            appendToLog("错误: Topic 名称不能为空。");
+            return;
+        }
+
+        int numPartitions = Integer.parseInt(numPartitionsField.getText());
+        short replicationFactor = Short.parseShort(replicationFactorField.getText());
+
+        NewTopic newTopic = new NewTopic(topicName, numPartitions, replicationFactor);
+
+        try {
+            adminClient.createTopics(Collections.singleton(newTopic)).all().get();
+            appendToLog("成功创建 Topic: " + topicName);
+            // 立即刷新列表以显示新创建的 Topic
+            refreshTopicsList();
+        } catch (ExecutionException | InterruptedException e) {
+            appendToLog("创建 Topic 失败: " + e.getCause().getMessage());
+        }
+    }
+
+    @FXML
+    protected void onDeleteTopicButtonClick() {
+        if (adminClient == null) {
+            appendToLog("错误: 请先连接到 Kafka 集群。");
+            return;
+        }
+
+        String selectedTopic = topicsListView.getSelectionModel().getSelectedItem();
+        if (selectedTopic == null || selectedTopic.trim().isEmpty()) {
+            appendToLog("错误: 请选择一个 Topic 来删除。");
+            return;
+        }
+
+        try {
+            adminClient.deleteTopics(Collections.singleton(selectedTopic)).all().get();
+            appendToLog("成功删除 Topic: " + selectedTopic);
+            // 立即刷新列表以移除已删除的 Topic
+            refreshTopicsList();
+        } catch (ExecutionException | InterruptedException e) {
+            appendToLog("删除 Topic 失败: " + e.getCause().getMessage());
         }
     }
 
     private void appendToLog(String message) {
-        Platform.runLater(() -> logArea.appendText(message + "\n"));
+        Platform.runLater(() -> {
+            logArea.appendText(message + "\n");
+        });
     }
 }
