@@ -121,11 +121,7 @@ public class MainController implements Initializable {
     protected void onConnectButtonClick() {
         String bootstrapServers = bootstrapServersField.getText();
         if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("连接错误");
-            alert.setHeaderText(null);
-            alert.setContentText("请输入 Kafka 集群地址。");
-            alert.showAndWait();
+            showAlert("连接错误", null, "请输入 Kafka 集群地址。");
             return;
         }
 
@@ -175,6 +171,14 @@ public class MainController implements Initializable {
         });
 
         new Thread(connectTask).start();
+    }
+
+    private void showAlert(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     // 新增: 断开连接的事件处理方法
@@ -403,11 +407,7 @@ public class MainController implements Initializable {
         } catch (NumberFormatException e) {
             appendToLog("错误: 分区数和副本因子必须是有效的数字。");
             // 也可以使用 Alert 弹出对话框
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("输入错误");
-            alert.setHeaderText(null);
-            alert.setContentText("分区数和副本因子必须是有效的数字。");
-            alert.showAndWait();
+            showAlert("输入错误", null, "分区数和副本因子必须是有效的数字。");
         } catch (ExecutionException | InterruptedException e) {
             appendToLog("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
