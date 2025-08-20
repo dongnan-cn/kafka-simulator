@@ -69,9 +69,9 @@
 
 ### 第四阶段：生产者与消费者功能
 
-- [ ] 在UI上添加生产者（Producer）和消费者（Consumer）面板。
-- [ ] 实现创建多个Producer实例的逻辑。
-- [ ] 实现消息发送功能（可配置消息 key, value, acks等）。
+- [x] 在UI上添加生产者（Producer）和消费者（Consumer）面板。
+- [x] 实现创建多个Producer实例的逻辑。
+- [x] 实现消息发送功能（可配置消息 key, value, acks等）。
 - [ ] 实现创建多个Consumer实例的逻辑。
 - [ ] 实现消费者订阅Topic和接收消息的功能。
 - [ ] 实时展示消息流。
