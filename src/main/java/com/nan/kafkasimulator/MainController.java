@@ -325,7 +325,7 @@ public class MainController implements Initializable {
             .filter(CheckBox::isSelected)
             .map(CheckBox::getText)
             .collect(Collectors.toList());
-            
+
         if (topicNames.isEmpty()) {
             appendToLog("错误: 订阅 Topic 不能为空。");
             return;
@@ -334,6 +334,8 @@ public class MainController implements Initializable {
         appendToLog("正在启动消费者...");
         onStartConsumerButtonClick.setDisable(true);
         onStopConsumerButtonClick.setDisable(false);
+        //开启消费后不能更改消费的主题
+        topicCheckBoxContainer.setDisable(true);
 
         Properties consumerProps = new Properties();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
@@ -371,6 +373,9 @@ public class MainController implements Initializable {
                     appendToLog("消费者已停止。");
                     onStartConsumerButtonClick.setDisable(false);
                     onStopConsumerButtonClick.setDisable(true);
+                    //消费停止后可以重新选择消费的主题
+                    topicCheckBoxContainer.setDisable(false);
+
                 });
             }
         });
@@ -393,6 +398,7 @@ public class MainController implements Initializable {
         appendToLog("正在尝试停止消费者...");
         onStopConsumerButtonClick.setDisable(true);
         onStartConsumerButtonClick.setDisable(false);
+        topicCheckBoxContainer.setDisable(false);
     }
 
     @FXML
