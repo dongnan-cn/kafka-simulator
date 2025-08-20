@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nan.kafkasimulator.MainController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nan.kafkasimulator.MainController">
    <children>
       <VBox layoutX="14.0" layoutY="14.0" prefHeight="586.0" prefWidth="886.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
@@ -24,110 +24,105 @@
                </padding>
             </HBox>
             <Separator prefWidth="200.0" />
-            <SplitPane dividerPositions="0.3" prefHeight="544.0" prefWidth="886.0" VBox.vgrow="ALWAYS">
-               <items>
-                  <TabPane fx:id="mainTabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
-                    <tabs>
-                      <Tab text="Topic 管理">
-                           <content>
-                              <VBox spacing="10.0">
-                                 <padding>
-                                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                 </padding>
-                                 <children>
-                                    <Label text="创建新 Topic">
-                                       <font>
-                                          <Font name="System Bold" size="12.0" />
-                                       </font>
-                                    </Label>
-                                    <TextField fx:id="newTopicNameField" promptText="Topic 名称" />
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Label text="分区数:" />
-                                          <TextField fx:id="numPartitionsField" prefWidth="50.0" text="1" />
-                                          <Label text="副本因子:" />
-                                          <TextField fx:id="replicationFactorField" prefWidth="50.0" text="1" />
-                                       </children>
-                                    </HBox>
-                                    <Button maxWidth="1.7976931348623157E308" onAction="#onCreateTopicButtonClick" text="创建 Topic" />
-                                    <Label text="Topic 列表">
-                                       <font>
-                                          <Font name="System Bold" size="12.0" />
-                                       </font>
-                                    </Label>
-                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                       <children>
-                                          <Button onAction="#onRefreshTopicsButtonClick" text="刷新" />
-                                          <Button onAction="#onDeleteTopicButtonClick" text="删除选中 Topic" />
-                                       </children>
-                                    </HBox>
-                                    <ListView fx:id="topicsListView" VBox.vgrow="ALWAYS" />
-                                 </children>
-                              </VBox>
-                           </content>
-                      </Tab>
-                      <Tab text="生产者">
-                           <content>
-                               <VBox spacing="10.0">
-                                   <padding>
-                                       <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                   </padding>
-                                   <children>
-                                       <Label text="选择 Topic" />
-                                       <ComboBox fx:id="producerTopicComboBox" promptText="选择一个 Topic" />
-                                       <Label text="消息 Key" />
-                                       <TextField fx:id="producerKeyField" promptText="可选" />
-                                       <Label text="消息 Value" />
-                                       <TextArea fx:id="producerValueArea" promptText="输入要发送的消息" VBox.vgrow="ALWAYS"/>
-                                       <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                           <children>
-                                               <Label text="acks:" />
-                                               <ChoiceBox fx:id="acksChoiceBox" prefWidth="80.0" />
-                                               <Label text="batch.size:" />
-                                               <TextField fx:id="batchSizeField" prefWidth="60.0" text="16384" />
-                                               <Label text="linger.ms:" />
-                                               <TextField fx:id="lingerMsField" prefWidth="60.0" text="0" />
-                                           </children>
-                                       </HBox>
-                                       <Button maxWidth="1.7976931348623157E308" onAction="#onSendButtonClick" text="发送消息" />
-                                   </children>
-                               </VBox>
-                           </content>
-                      </Tab>
-                      <Tab text="消费者">
-                          <content>
-                              <VBox spacing="10.0">
-                                  <padding>
-                                      <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                  </padding>
-                                  <children>
-                                      <Label text="消费者组 ID" />
-                                      <TextField fx:id="consumerGroupIdField" promptText="输入消费者组 ID" />
-                                      <Label text="订阅 Topic" />
-                                      <TextField fx:id="consumerTopicField" promptText="输入 Topic 名称" />
-                                      <Label text="自动提交偏移量" />
-                                      <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="80.0" />
-                                      <Button maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />
-                                      <Button maxWidth="1.7976931348623157E308" onAction="#onStopConsumerButtonClick" text="停止消费者" />
-                                      <Label text="收到的消息" />
-                                      <TextArea fx:id="consumerMessagesArea" editable="false" VBox.vgrow="ALWAYS" />
-                                  </children>
-                              </VBox>
-                          </content>
-                      </Tab>
-                    </tabs>
-                  </TabPane>
-                  <VBox prefHeight="200.0" prefWidth="100.0">
+            <HBox spacing="10.0" VBox.vgrow="ALWAYS">
+               <children>
+                  <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+                     <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </padding>
                      <children>
-                        <TitledPane collapsible="false" text="日志输出" VBox.vgrow="ALWAYS">
-                           <content>
-                              <TextArea fx:id="logArea" editable="false" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
-                           </content>
-                        </TitledPane>
+                        <Label text="Topic 管理">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <Label text="创建新 Topic">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="newTopicNameField" promptText="Topic 名称" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label text="分区数:" />
+                              <TextField fx:id="numPartitionsField" prefWidth="50.0" text="1" />
+                              <Label text="副本因子:" />
+                              <TextField fx:id="replicationFactorField" prefWidth="50.0" text="1" />
+                           </children>
+                        </HBox>
+                        <Button maxWidth="1.7976931348623157E308" onAction="#onCreateTopicButtonClick" text="创建 Topic" />
+                        <Label text="Topic 列表">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Button onAction="#onRefreshTopicsButtonClick" text="刷新" />
+                              <Button onAction="#onDeleteTopicButtonClick" text="删除选中 Topic" />
+                           </children>
+                        </HBox>
+                        <ListView fx:id="topicsListView" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
-               </items>
-            </SplitPane>
+                  <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+                     <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </padding>
+                     <children>
+                        <Label text="生产者">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <Label text="选择 Topic" />
+                        <ComboBox fx:id="producerTopicComboBox" promptText="选择一个 Topic" />
+                        <Label text="消息 Key" />
+                        <TextField fx:id="producerKeyField" promptText="可选" />
+                        <Label text="消息 Value" />
+                        <TextArea fx:id="producerValueArea" promptText="输入要发送的消息" VBox.vgrow="ALWAYS" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label text="acks:" />
+                              <ChoiceBox fx:id="acksChoiceBox" prefWidth="80.0" />
+                              <Label text="batch.size:" />
+                              <TextField fx:id="batchSizeField" prefWidth="60.0" text="16384" />
+                              <Label text="linger.ms:" />
+                              <TextField fx:id="lingerMsField" prefWidth="60.0" text="0" />
+                           </children>
+                        </HBox>
+                        <Button maxWidth="1.7976931348623157E308" onAction="#onSendButtonClick" text="发送消息" />
+                     </children>
+                  </VBox>
+                  <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+                     <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </padding>
+                     <children>
+                        <Label text="消费者">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <Label text="消费者组 ID" />
+                        <TextField fx:id="consumerGroupIdField" promptText="输入消费者组 ID" />
+                        <Label text="订阅 Topic" />
+                        <TextField fx:id="consumerTopicField" promptText="输入 Topic 名称" />
+                        <Label text="自动提交偏移量" />
+                        <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="80.0" />
+                        <Button maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />
+                        <Button maxWidth="1.7976931348623157E308" onAction="#onStopConsumerButtonClick" text="停止消费者" />
+                        <Label text="收到的消息" />
+                        <TextArea fx:id="consumerMessagesArea" editable="false" VBox.vgrow="ALWAYS" />
+                     </children>
+                  </VBox>
+               </children>
+            </HBox>
+            <TitledPane collapsible="false" text="日志输出" VBox.vgrow="SOMETIMES">
+               <content>
+                  <TextArea fx:id="logArea" editable="false" prefHeight="200.0" prefWidth="200.0" />
+               </content>
+            </TitledPane>
          </children>
       </VBox>
    </children>
