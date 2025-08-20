@@ -16,7 +16,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-
 import jakarta.annotation.PreDestroy;
 
 import java.net.URL;
@@ -31,6 +30,8 @@ public class MainController implements Initializable {
     private TextField bootstrapServersField;
     @FXML
     private Button connectButton;
+    @FXML
+    private Button disconnectButton; // 新增: 断开连接按钮
     @FXML
     private TextArea logArea;
     @FXML
@@ -80,20 +81,18 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        // 设置默认的 Kafka 地址
         bootstrapServersField.setText("localhost:19092");
 
-        // 初始化 acks 选择框，并设置默认值
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
-        // 初始化消费者自动提交选项，并设置默认值
         autoCommitChoiceBox.getItems().addAll("true", "false");
         autoCommitChoiceBox.setValue("true");
 
-        // 初始禁用除连接按钮外的所有UI控件
         setAllControlsDisable(true);
-        onStopConsumerButtonClick.setDisable(true);
+        // 初始状态，连接按钮可用，断开按钮不可用
+        connectButton.setDisable(false);
+        disconnectButton.setDisable(true);
     }
 
     private void setAllControlsDisable(boolean disable) {
@@ -122,7 +121,6 @@ public class MainController implements Initializable {
     protected void onConnectButtonClick() {
         String bootstrapServers = bootstrapServersField.getText();
         if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
-            // 使用 Alert 弹出错误提示
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("连接错误");
             alert.setHeaderText(null);
@@ -138,16 +136,13 @@ public class MainController implements Initializable {
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(AdminClientConfig.CLIENT_ID_CONFIG, "KafkaSimulator-AdminClient");
 
-        // 在后台线程中执行连接操作，避免阻塞UI
         Task<Void> connectTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                // 确保旧的 adminClient 被关闭
                 if (adminClient != null) {
                     adminClient.close();
                 }
                 adminClient = AdminClient.create(props);
-                // 通过获取集群描述来验证连接
                 adminClient.describeCluster().clusterId().get(10, TimeUnit.SECONDS);
                 return null;
             }
@@ -159,13 +154,13 @@ public class MainController implements Initializable {
                 try {
                     displayClusterMetadata();
                     refreshTopicsListAndComboBox();
-                    // 连接成功后，启用所有UI控件
+                    // 连接成功后，启用所有UI控件并切换按钮状态
                     setAllControlsDisable(false);
+                    connectButton.setDisable(true);
+                    disconnectButton.setDisable(false);
                 } catch (ExecutionException | InterruptedException e) {
                     appendToLog("获取集群元数据失败: " + e.getMessage());
-                    setAllControlsDisable(true); // 失败时保持禁用
-                } finally {
-                    connectButton.setDisable(false);
+                    setAllControlsDisable(true);
                 }
             });
         });
@@ -179,8 +174,25 @@ public class MainController implements Initializable {
             });
         });
 
-        // 启动后台任务
         new Thread(connectTask).start();
+    }
+
+    // 新增: 断开连接的事件处理方法
+    @FXML
+    protected void onDisconnectButtonClick() {
+        if (adminClient != null) {
+            appendToLog("正在断开与 Kafka 集群的连接...");
+            onStopConsumerButtonClick(); // 停止所有消费者
+            adminClient.close(Duration.ofSeconds(10)); // 优雅关闭
+            adminClient = null;
+            appendToLog("已成功断开连接。");
+            // 断开后，禁用所有控件并切换按钮状态
+            setAllControlsDisable(true);
+            connectButton.setDisable(false);
+            disconnectButton.setDisable(true);
+        } else {
+            appendToLog("当前未连接到 Kafka 集群。");
+        }
     }
 
     private void displayClusterMetadata() throws ExecutionException, InterruptedException {
@@ -252,7 +264,6 @@ public class MainController implements Initializable {
             return;
         }
 
-        // 使用 try-with-resources 自动关闭 producer
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
@@ -297,7 +308,7 @@ public class MainController implements Initializable {
             appendToLog("错误: 订阅 Topic 不能为空。");
             return;
         }
-        // 新增代码：将字符串按逗号分割为 Topic 列表
+
         List<String> topicNames = Arrays.asList(topicNamesStr.split("\\s*,\\s*"));
         if (topicNames.isEmpty()) {
             appendToLog("错误: 订阅 Topic 不能为空。");
@@ -434,12 +445,9 @@ public class MainController implements Initializable {
     @PreDestroy
     public void cleanup() {
         appendToLog("正在关闭应用程序...");
-        // 停止消费者线程
         onStopConsumerButtonClick();
-
-        // 关闭AdminClient
         if (adminClient != null) {
-            adminClient.close();
+            adminClient.close(Duration.ofSeconds(10));
         }
         appendToLog("所有资源已释放。");
     }
