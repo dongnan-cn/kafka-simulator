@@ -108,6 +108,7 @@
                                       <Label text="自动提交偏移量" />
                                       <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="80.0" />
                                       <Button maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />
+                                      <Button maxWidth="1.7976931348623157E308" onAction="#onStopConsumerButtonClick" text="停止消费者" />
                                       <Label text="收到的消息" />
                                       <TextArea fx:id="consumerMessagesArea" editable="false" VBox.vgrow="ALWAYS" />
                                   </children>

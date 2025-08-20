@@ -6,17 +6,22 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import jakarta.annotation.PreDestroy;
+
 import java.net.URL;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class MainController implements Initializable {
 
@@ -46,8 +51,20 @@ public class MainController implements Initializable {
     private TextField batchSizeField;
     @FXML
     private TextField lingerMsField;
+    @FXML
+    private TextField consumerGroupIdField;
+    @FXML
+    private TextField consumerTopicField;
+    @FXML
+    private ChoiceBox<String> autoCommitChoiceBox;
+    @FXML
+    private Button onStartConsumerButtonClick;
+    @FXML
+    private TextArea consumerMessagesArea;
 
     private AdminClient adminClient;
+    private volatile boolean isConsuming = false;
+    private Thread consumerThread;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -68,6 +85,10 @@ public class MainController implements Initializable {
                 Thread.currentThread().interrupt();
             }
         });
+
+        // --- 第二步: 初始化消费者自动提交选项 ---
+        autoCommitChoiceBox.getItems().addAll("true", "false");
+        autoCommitChoiceBox.setValue("true"); // 设置默认值
     }
 
     @FXML
@@ -195,8 +216,92 @@ public class MainController implements Initializable {
 
     @FXML
     protected void onStartConsumerButtonClick() {
-        // TODO: 在这里添加启动消费者的逻辑
-        appendToLog("启动消费者按钮被点击，功能待实现。");
+        if (adminClient == null) {
+            appendToLog("错误: 请先连接到 Kafka 集群。");
+            return;
+        }
+
+        String groupId = consumerGroupIdField.getText();
+        String topicName = consumerTopicField.getText();
+
+        if (groupId == null || groupId.trim().isEmpty()) {
+            appendToLog("错误: 消费者组 ID 不能为空。");
+            return;
+        }
+
+        if (topicName == null || topicName.trim().isEmpty()) {
+            appendToLog("错误: 订阅 Topic 不能为空。");
+            return;
+        }
+
+        appendToLog("正在启动消费者...");
+
+        Properties consumerProps = new Properties();
+        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
+        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.valueOf(autoCommitChoiceBox.getValue()));
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"); // 确保从头开始消费
+
+        // 实例化消费者
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+
+        // 订阅 Topic
+        consumer.subscribe(Collections.singletonList(topicName));
+
+        // 启动后台线程来轮询消息
+        startPollingThread(consumer);
+    }
+
+    private void startPollingThread(KafkaConsumer<String, String> consumer) {
+        if (isConsuming) {
+            appendToLog("错误: 消费者已经在运行中。");
+            return;
+        }
+
+        isConsuming = true;
+        consumerThread = new Thread(() -> {
+            try {
+                while (isConsuming) {
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                    for (ConsumerRecord<String, String> record : records) {
+                        String message = String.format("收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
+                                record.topic(), record.partition(), record.offset(), record.key(), record.value());
+
+                        // 在 UI 线程上更新消息
+                        Platform.runLater(() -> consumerMessagesArea.appendText(message));
+                    }
+                }
+            } catch (Exception e) {
+                if (isConsuming) { // 如果不是手动停止，则记录错误
+                    appendToLog("消费者线程出错: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } finally {
+                consumer.close();
+                isConsuming = false;
+                Platform.runLater(() -> appendToLog("消费者已停止。"));
+            }
+        });
+
+        consumerThread.setDaemon(true); // 将线程设置为守护线程，以便在主应用退出时自动关闭
+        consumerThread.start();
+        appendToLog("消费者已成功启动！");
+    }
+
+    @FXML
+    protected void onStopConsumerButtonClick() {
+        if (isConsuming) {
+            isConsuming = false;
+            // interrupt() 可以让正在阻塞的 poll 方法抛出异常并退出
+            if (consumerThread != null) {
+                consumerThread.interrupt();
+            }
+            appendToLog("正在尝试停止消费者...");
+        } else {
+            appendToLog("错误: 消费者未运行。");
+        }
     }
 
     @FXML
@@ -254,5 +359,18 @@ public class MainController implements Initializable {
         Platform.runLater(() -> {
             logArea.appendText(message + "\n");
         });
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        appendToLog("正在关闭应用程序...");
+        // 停止消费者线程
+        onStopConsumerButtonClick();
+
+        // 关闭AdminClient
+        if (adminClient != null) {
+            adminClient.close();
+        }
+        appendToLog("所有资源已释放。");
     }
 }
