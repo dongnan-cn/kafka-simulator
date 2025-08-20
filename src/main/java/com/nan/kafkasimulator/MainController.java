@@ -115,13 +115,19 @@ public class MainController implements Initializable {
         consumerTopicField.setDisable(disable);
         autoCommitChoiceBox.setDisable(disable);
         onStartConsumerButtonClick.setDisable(disable);
+        onStopConsumerButtonClick.setDisable(disable);
     }
 
     @FXML
     protected void onConnectButtonClick() {
         String bootstrapServers = bootstrapServersField.getText();
         if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
-            appendToLog("错误: 请输入 Kafka 集群地址。");
+            // 使用 Alert 弹出错误提示
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("连接错误");
+            alert.setHeaderText(null);
+            alert.setContentText("请输入 Kafka 集群地址。");
+            alert.showAndWait();
             return;
         }
 
@@ -280,13 +286,20 @@ public class MainController implements Initializable {
         }
 
         String groupId = consumerGroupIdField.getText();
-        String topicName = consumerTopicField.getText();
 
         if (groupId == null || groupId.trim().isEmpty()) {
             appendToLog("错误: 消费者组 ID 不能为空。");
             return;
         }
-        if (topicName == null || topicName.trim().isEmpty()) {
+
+        String topicNamesStr = consumerTopicField.getText();
+        if (topicNamesStr == null || topicNamesStr.trim().isEmpty()) {
+            appendToLog("错误: 订阅 Topic 不能为空。");
+            return;
+        }
+        // 新增代码：将字符串按逗号分割为 Topic 列表
+        List<String> topicNames = Arrays.asList(topicNamesStr.split("\\s*,\\s*"));
+        if (topicNames.isEmpty()) {
             appendToLog("错误: 订阅 Topic 不能为空。");
             return;
         }
@@ -304,7 +317,7 @@ public class MainController implements Initializable {
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
-        consumer.subscribe(Collections.singletonList(topicName));
+        consumer.subscribe(topicNames);
         startPollingThread(consumer);
     }
 
@@ -351,6 +364,8 @@ public class MainController implements Initializable {
             consumerThread.interrupt();
         }
         appendToLog("正在尝试停止消费者...");
+        onStopConsumerButtonClick.setDisable(true);
+        onStartConsumerButtonClick.setDisable(false);
     }
 
     @FXML
@@ -376,6 +391,12 @@ public class MainController implements Initializable {
             refreshTopicsListAndComboBox();
         } catch (NumberFormatException e) {
             appendToLog("错误: 分区数和副本因子必须是有效的数字。");
+            // 也可以使用 Alert 弹出对话框
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("输入错误");
+            alert.setHeaderText(null);
+            alert.setContentText("分区数和副本因子必须是有效的数字。");
+            alert.showAndWait();
         } catch (ExecutionException | InterruptedException e) {
             appendToLog("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
@@ -406,6 +427,7 @@ public class MainController implements Initializable {
     private void appendToLog(String message) {
         Platform.runLater(() -> {
             logArea.appendText(message + "\n");
+            logArea.setScrollTop(Double.MAX_VALUE);
         });
     }
 
