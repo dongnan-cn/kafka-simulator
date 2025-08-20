@@ -108,7 +108,13 @@
                                 <Label text="消费者组 ID" />
                                 <TextField fx:id="consumerGroupIdField" promptText="输入消费者组 ID" />
                                 <Label text="订阅 Topic" />
-                                <TextField fx:id="consumerTopicField" promptText="输入 Topic 名称" />
+                                <VBox fx:id="consumerTopicsVBox" spacing="5.0" prefHeight="100.0" VBox.vgrow="ALWAYS">
+                                 <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+                                    <content>
+                                          <VBox fx:id="topicCheckBoxContainer" spacing="5.0" />
+                                    </content>
+                                 </ScrollPane>
+                                </VBox>
                                 <Label text="自动提交偏移量" />
                                 <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="80.0" />
                                 <Button fx:id="onStartConsumerButtonClick" maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />

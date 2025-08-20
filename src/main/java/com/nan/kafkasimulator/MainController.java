@@ -5,6 +5,8 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,6 +25,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class MainController implements Initializable {
 
@@ -57,7 +60,7 @@ public class MainController implements Initializable {
     @FXML
     private TextField consumerGroupIdField;
     @FXML
-    private TextField consumerTopicField;
+    private VBox topicCheckBoxContainer;
     @FXML
     private ChoiceBox<String> autoCommitChoiceBox;
     @FXML
@@ -111,7 +114,7 @@ public class MainController implements Initializable {
         lingerMsField.setDisable(disable);
         onSendButtonClick.setDisable(disable);
         consumerGroupIdField.setDisable(disable);
-        consumerTopicField.setDisable(disable);
+        topicCheckBoxContainer.setDisable(disable);
         autoCommitChoiceBox.setDisable(disable);
         onStartConsumerButtonClick.setDisable(disable);
         onStopConsumerButtonClick.setDisable(disable);
@@ -231,11 +234,20 @@ public class MainController implements Initializable {
                 topicsListView.getItems().addAll(topicNames);
                 producerTopicComboBox.getItems().clear();
                 producerTopicComboBox.getItems().addAll(topicNames);
+                createConsumerTopicCheckBoxes(topicNames);
                 appendToLog("Topic 列表刷新成功。");
             });
         } catch (ExecutionException | InterruptedException e) {
             appendToLog("刷新 Topic 列表失败: " + e.getMessage());
         }
+    }
+
+    private void createConsumerTopicCheckBoxes(Set<String> topicNames) {
+        topicCheckBoxContainer.getChildren().clear();
+        topicNames.stream().sorted().forEach(topicName -> {
+            CheckBox checkBox = new CheckBox(topicName);
+            topicCheckBoxContainer.getChildren().add(checkBox);
+        });
     }
 
     @FXML
@@ -307,13 +319,13 @@ public class MainController implements Initializable {
             return;
         }
 
-        String topicNamesStr = consumerTopicField.getText();
-        if (topicNamesStr == null || topicNamesStr.trim().isEmpty()) {
-            appendToLog("错误: 订阅 Topic 不能为空。");
-            return;
-        }
-
-        List<String> topicNames = Arrays.asList(topicNamesStr.split("\\s*,\\s*"));
+        List<String> topicNames = topicCheckBoxContainer.getChildren().stream()
+            .filter(node -> node instanceof CheckBox)
+            .map(node -> (CheckBox) node)
+            .filter(CheckBox::isSelected)
+            .map(CheckBox::getText)
+            .collect(Collectors.toList());
+            
         if (topicNames.isEmpty()) {
             appendToLog("错误: 订阅 Topic 不能为空。");
             return;
