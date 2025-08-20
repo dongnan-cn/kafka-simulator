@@ -33,7 +33,7 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        bootstrapServersField.setText("localhost:9092");
+        bootstrapServersField.setText("localhost:19092");
     }
 
     @FXML
@@ -108,6 +108,18 @@ public class MainController implements Initializable {
             appendToLog("刷新 Topic 列表失败: " + e.getMessage());
             e.printStackTrace(); // 打印完整的堆栈信息
         }
+    }
+
+    @FXML
+    protected void onSendButtonClick() {
+        // TODO: 在这里添加消息发送逻辑
+        appendToLog("发送消息按钮被点击，功能待实现。");
+    }
+
+    @FXML
+    protected void onStartConsumerButtonClick() {
+        // TODO: 在这里添加启动消费者的逻辑
+        appendToLog("启动消费者按钮被点击，功能待实现。");
     }
 
     @FXML
