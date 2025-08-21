@@ -88,8 +88,6 @@ public class MainController implements Initializable {
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
-
-
         setAllControlsDisable(true);
         // 初始状态，连接按钮可用，断开按钮不可用
         connectButton.setDisable(false);
@@ -319,13 +317,13 @@ public class MainController implements Initializable {
     }
 
     @FXML
+    @SuppressWarnings("unchecked")
     protected void onStartConsumerButtonClick() {
         // 从“新增消费者组”Tab中获取UI元素
         Tab createNewTab = consumerTabPane.getTabs().get(0);
         TextField groupIdField = (TextField) createNewTab.getContent().lookup("#consumerGroupIdField");
         VBox topicContainer = (VBox) createNewTab.getContent().lookup("#topicCheckBoxContainer");
-
-        ChoiceBox<String> autoCommitBox = (ChoiceBox) createNewTab.getContent().lookup("#autoCommitChoiceBox");
+        ChoiceBox<String> autoCommitBox = (ChoiceBox<String>) createNewTab.getContent().lookup("#autoCommitChoiceBox");
 
         String groupId = groupIdField.getText();
         if (groupId == null || groupId.trim().isEmpty()) {
