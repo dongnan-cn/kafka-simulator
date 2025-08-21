@@ -491,7 +491,6 @@ public class MainController implements Initializable {
         });
     }
 
-    @PreDestroy
     public void cleanup() {
         appendToLog("正在关闭应用程序...");
         activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
