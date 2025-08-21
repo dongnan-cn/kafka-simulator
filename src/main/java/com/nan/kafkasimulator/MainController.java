@@ -117,7 +117,7 @@ public class MainController implements Initializable {
         topicCheckBoxContainer.setDisable(disable);
         autoCommitChoiceBox.setDisable(disable);
         onStartConsumerButtonClick.setDisable(disable);
-        onStopConsumerButtonClick.setDisable(disable);
+        onStopConsumerButtonClick.setDisable(!disable);
     }
 
     @FXML
@@ -355,27 +355,55 @@ public class MainController implements Initializable {
         consumerThread = new Thread(() -> {
             try {
                 while (isConsuming) {
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                    for (ConsumerRecord<String, String> record : records) {
-                        String message = String.format("收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
-                                record.topic(), record.partition(), record.offset(), record.key(), record.value());
-                        Platform.runLater(() -> consumerMessagesArea.appendText(message));
+                    try {
+                        // 使用较短的轮询时间，以便更快响应停止请求
+                        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                        for (ConsumerRecord<String, String> record : records) {
+                            String message = String.format("收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
+                                    record.topic(), record.partition(), record.offset(), record.key(), record.value());
+                            Platform.runLater(() -> consumerMessagesArea.appendText(message));
+                        }
+                    } catch (org.apache.kafka.common.errors.InterruptException e) {
+                        // 线程被中断，优雅地退出循环
+                        System.out.println("消费者轮询被中断，准备退出");
+                        break;
+                    } catch (Exception e) {
+                        // 处理其他异常
+                        if (isConsuming) {
+                            Platform.runLater(() -> appendToLog("消费者轮询出错: " + e.getMessage()));
+                            // 短暂暂停避免异常情况下的快速循环
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException ie) {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 }
+                System.out.println("消费者线程已停止");
             } catch (Exception e) {
+                // 捕获外层循环中可能发生的异常
                 if (isConsuming) {
                     Platform.runLater(() -> appendToLog("消费者线程出错: " + e.getMessage()));
                 }
             } finally {
-                consumer.close();
+                try {
+                    // 尝试优雅地关闭消费者
+                    consumer.close(Duration.ofSeconds(5));
+                } catch (Exception e) {
+                    Platform.runLater(() -> appendToLog("关闭消费者时出错: " + e.getMessage()));
+                }
+                
                 isConsuming = false;
                 Platform.runLater(() -> {
                     appendToLog("消费者已停止。");
                     onStartConsumerButtonClick.setDisable(false);
-                    onStopConsumerButtonClick.setDisable(true);
                     //消费停止后可以重新选择消费的主题
                     topicCheckBoxContainer.setDisable(false);
-
+                    System.out.println("消费停止后可以重新选择消费的主题");
+                    consumerGroupIdField.setDisable(false);
                 });
             }
         });
@@ -391,14 +419,28 @@ public class MainController implements Initializable {
             appendToLog("错误: 消费者未运行。");
             return;
         }
+        
+        // 只设置标志位，不直接中断线程
         isConsuming = false;
-        if (consumerThread != null) {
-            consumerThread.interrupt();
-        }
         appendToLog("正在尝试停止消费者...");
         onStopConsumerButtonClick.setDisable(true);
-        onStartConsumerButtonClick.setDisable(false);
-        topicCheckBoxContainer.setDisable(false);
+        System.out.println("正在尝试停止消费者...");
+        
+        // 给消费者线程一些时间来优雅地退出
+        new Thread(() -> {
+            try {
+                // 等待最多5秒让消费者线程自然结束
+                if (consumerThread != null) {
+                    consumerThread.join(5000);
+                    // 如果线程仍在运行，才强制中断
+                    if (consumerThread.isAlive()) {
+                        consumerThread.interrupt();
+                    }
+                }
+            } catch (InterruptedException e) {
+                Platform.runLater(() -> appendToLog("等待消费者停止时被中断: " + e.getMessage()));
+            }
+        }).start();
     }
 
     @FXML
