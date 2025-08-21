@@ -77,6 +77,10 @@ public class MainController implements Initializable {
     private Button onSendButtonClick;
     @FXML
     private Button onStopConsumerButtonClick;
+    @FXML
+    private Button onShowPartitionAssignmentButtonClick; // 新增: 显示分区分配按钮
+    @FXML
+    private TextArea partitionAssignmentArea; // 新增: 分区分配结果显示区域
 
     private AdminClient adminClient;
     private volatile boolean isConsuming = false;
@@ -118,6 +122,8 @@ public class MainController implements Initializable {
         autoCommitChoiceBox.setDisable(disable);
         onStartConsumerButtonClick.setDisable(disable);
         onStopConsumerButtonClick.setDisable(!disable);
+        onShowPartitionAssignmentButtonClick.setDisable(disable);
+        partitionAssignmentArea.setDisable(disable);
     }
 
     @FXML
@@ -334,8 +340,9 @@ public class MainController implements Initializable {
         appendToLog("正在启动消费者...");
         onStartConsumerButtonClick.setDisable(true);
         onStopConsumerButtonClick.setDisable(false);
-        //开启消费后不能更改消费的主题
+        // 开启消费后不能更改消费的主题
         topicCheckBoxContainer.setDisable(true);
+        consumerGroupIdField.setDisable(true);
 
         Properties consumerProps = new Properties();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
@@ -359,7 +366,8 @@ public class MainController implements Initializable {
                         // 使用较短的轮询时间，以便更快响应停止请求
                         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
                         for (ConsumerRecord<String, String> record : records) {
-                            String message = String.format("收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
+                            String message = String.format(
+                                    "收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
                                     record.topic(), record.partition(), record.offset(), record.key(), record.value());
                             Platform.runLater(() -> consumerMessagesArea.appendText(message));
                         }
@@ -395,15 +403,16 @@ public class MainController implements Initializable {
                 } catch (Exception e) {
                     Platform.runLater(() -> appendToLog("关闭消费者时出错: " + e.getMessage()));
                 }
-                
+
                 isConsuming = false;
                 Platform.runLater(() -> {
                     appendToLog("消费者已停止。");
                     onStartConsumerButtonClick.setDisable(false);
-                    //消费停止后可以重新选择消费的主题
+                    // 消费停止后可以重新选择消费的主题
                     topicCheckBoxContainer.setDisable(false);
                     System.out.println("消费停止后可以重新选择消费的主题");
                     consumerGroupIdField.setDisable(false);
+                    onShowPartitionAssignmentButtonClick.setDisable(false);
                 });
             }
         });
@@ -414,18 +423,92 @@ public class MainController implements Initializable {
     }
 
     @FXML
+    protected void onShowPartitionAssignmentButtonClick() {
+        if (adminClient == null) {
+            appendToLog("错误: 请先连接到 Kafka 集群。");
+            return;
+        }
+        String groupId = consumerGroupIdField.getText();
+        if (groupId == null || groupId.trim().isEmpty()) {
+            appendToLog("错误: 消费者组 ID 不能为空。");
+            return;
+        }
+
+        appendToLog("正在查询消费者组 '" + groupId + "' 的分区分配情况...");
+        partitionAssignmentArea.clear();
+
+        Task<Map<String, List<String>>> assignmentTask = new Task<>() {
+            @Override
+            protected Map<String, List<String>> call() throws Exception {
+                DescribeConsumerGroupsResult result = adminClient
+                        .describeConsumerGroups(Collections.singleton(groupId));
+                ConsumerGroupDescription description = result.describedGroups().get(groupId).get();
+
+                Map<String, List<String>> assignments = new HashMap<>();
+                if (description.members() != null) {
+                    for (MemberDescription member : description.members()) {
+                        String memberId = member.consumerId();
+                        if (memberId == null || memberId.isEmpty()) {
+                            memberId = member.host() + "/" + member.clientId();
+                        }
+
+                        List<String> assignedPartitions = member.assignment().topicPartitions().stream()
+                                .map(tp -> tp.topic() + "-" + tp.partition())
+                                .collect(Collectors.toList());
+                        assignments.put(memberId, assignedPartitions);
+                    }
+                }
+                return assignments;
+            }
+        };
+
+        assignmentTask.setOnSucceeded(event -> {
+            Map<String, List<String>> assignments = assignmentTask.getValue();
+            Platform.runLater(() -> {
+                StringBuilder sb = new StringBuilder();
+                sb.append("消费者组 '").append(groupId).append("' 的分区分配:\n");
+                if (assignments.isEmpty()) {
+                    sb.append("当前消费者组没有活跃成员或分配的分区。");
+                } else {
+                    assignments.forEach((memberId, partitions) -> {
+                        sb.append("-> 消费者 ").append(memberId).append(":\n");
+                        if (partitions.isEmpty()) {
+                            sb.append("   - 未分配任何分区。\n");
+                        } else {
+                            partitions.forEach(p -> sb.append("   - ").append(p).append("\n"));
+                        }
+                    });
+                }
+                partitionAssignmentArea.setText(sb.toString());
+                appendToLog("分区分配查询成功。");
+            });
+        });
+
+        assignmentTask.setOnFailed(event -> {
+            Throwable e = assignmentTask.getException();
+            Platform.runLater(() -> {
+                appendToLog("获取分区分配失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+                partitionAssignmentArea.setText(
+                        "获取分区分配失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getCause().getMessage()));
+            });
+        });
+
+        new Thread(assignmentTask).start();
+    }
+
+    @FXML
     protected void onStopConsumerButtonClick() {
         if (!isConsuming) {
             appendToLog("错误: 消费者未运行。");
             return;
         }
-        
+
         // 只设置标志位，不直接中断线程
         isConsuming = false;
         appendToLog("正在尝试停止消费者...");
         onStopConsumerButtonClick.setDisable(true);
         System.out.println("正在尝试停止消费者...");
-        
+
         // 给消费者线程一些时间来优雅地退出
         new Thread(() -> {
             try {

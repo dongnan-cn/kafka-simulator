@@ -117,10 +117,20 @@
                                 </VBox>
                                 <Label text="自动提交偏移量" />
                                 <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="80.0" />
-                                <Button fx:id="onStartConsumerButtonClick" maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />
+                                <HBox spacing="5.0">
+                                    <children>
+                                        <Button fx:id="onStartConsumerButtonClick" onAction="#onStartConsumerButtonClick" text="启动消费者" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="onStopConsumerButtonClick" onAction="#onStopConsumerButtonClick" text="停止消费者" HBox.hgrow="ALWAYS" />
+                                    </children>
+                                </HBox>
+                                <!-- <Button fx:id="onStartConsumerButtonClick" maxWidth="1.7976931348623157E308" onAction="#onStartConsumerButtonClick" text="启动消费者" />
                                 <Button fx:id="onStopConsumerButtonClick" maxWidth="1.7976931348623157E308" onAction="#onStopConsumerButtonClick" text="停止消费者" />
+                                 -->
+                                <Button fx:id="onShowPartitionAssignmentButtonClick" maxWidth="1.7976931348623157E308" onAction="#onShowPartitionAssignmentButtonClick" text="显示分区分配" />
                                 <Label text="收到的消息" />
                                 <TextArea fx:id="consumerMessagesArea" editable="false" VBox.vgrow="ALWAYS" />
+                                <Label text="分区分配" />
+                                <TextArea fx:id="partitionAssignmentArea" editable="false" VBox.vgrow="ALWAYS" />
                             </children>
                         </VBox>
                     </children>
