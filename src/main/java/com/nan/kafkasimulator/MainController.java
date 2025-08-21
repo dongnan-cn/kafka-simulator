@@ -5,6 +5,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import org.apache.kafka.clients.admin.*;
@@ -34,7 +35,7 @@ public class MainController implements Initializable {
     @FXML
     private Button connectButton;
     @FXML
-    private Button disconnectButton; // 新增: 断开连接按钮
+    private Button disconnectButton;
     @FXML
     private TextArea logArea;
     @FXML
@@ -58,15 +59,9 @@ public class MainController implements Initializable {
     @FXML
     private TextField lingerMsField;
     @FXML
-    private TextField consumerGroupIdField;
+    private TextArea consumerMessagesArea; // 在FXML中动态添加，这里保留以便于在启动时引用
     @FXML
-    private VBox topicCheckBoxContainer;
-    @FXML
-    private ChoiceBox<String> autoCommitChoiceBox;
-    @FXML
-    private Button onStartConsumerButtonClick;
-    @FXML
-    private TextArea consumerMessagesArea;
+    private TextArea partitionAssignmentArea; // 在FXML中动态添加，这里保留以便于在启动时引用
     @FXML
     private Button onCreateTopicButtonClick;
     @FXML
@@ -75,16 +70,21 @@ public class MainController implements Initializable {
     private Button onDeleteTopicButtonClick;
     @FXML
     private Button onSendButtonClick;
+
+    // 新增：与消费者组管理Tab相关的UI元素
     @FXML
-    private Button onStopConsumerButtonClick;
+    private TabPane consumerTabPane;
     @FXML
-    private Button onShowPartitionAssignmentButtonClick; // 新增: 显示分区分配按钮
-    @FXML
-    private TextArea partitionAssignmentArea; // 新增: 分区分配结果显示区域
+    private ChoiceBox<String> autoCommitChoiceBox;
 
     private AdminClient adminClient;
-    private volatile boolean isConsuming = false;
-    private Thread consumerThread;
+    // 移除旧的单消费者线程和状态管理
+    // private volatile boolean isConsuming = false;
+    // private Thread consumerThread;
+
+    // 新增：用于管理所有消费者组实例的Map
+    private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
+    private final Map<String, Tab> consumerGroupTabs = new HashMap<>();
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -93,13 +93,14 @@ public class MainController implements Initializable {
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
-        autoCommitChoiceBox.getItems().addAll("true", "false");
-        autoCommitChoiceBox.setValue("true");
+
 
         setAllControlsDisable(true);
         // 初始状态，连接按钮可用，断开按钮不可用
         connectButton.setDisable(false);
         disconnectButton.setDisable(true);
+        autoCommitChoiceBox.getItems().addAll("true", "false");
+        autoCommitChoiceBox.setValue("true");
     }
 
     private void setAllControlsDisable(boolean disable) {
@@ -117,13 +118,9 @@ public class MainController implements Initializable {
         batchSizeField.setDisable(disable);
         lingerMsField.setDisable(disable);
         onSendButtonClick.setDisable(disable);
-        consumerGroupIdField.setDisable(disable);
-        topicCheckBoxContainer.setDisable(disable);
-        autoCommitChoiceBox.setDisable(disable);
-        onStartConsumerButtonClick.setDisable(disable);
-        onStopConsumerButtonClick.setDisable(!disable);
-        onShowPartitionAssignmentButtonClick.setDisable(disable);
-        partitionAssignmentArea.setDisable(disable);
+
+        // 禁用消费者TabPane，因为它里面的内容现在是动态管理的
+        consumerTabPane.setDisable(disable);
     }
 
     @FXML
@@ -190,13 +187,15 @@ public class MainController implements Initializable {
         alert.showAndWait();
     }
 
-    // 新增: 断开连接的事件处理方法
     @FXML
     protected void onDisconnectButtonClick() {
         if (adminClient != null) {
             appendToLog("正在断开与 Kafka 集群的连接...");
-            onStopConsumerButtonClick(); // 停止所有消费者
-            adminClient.close(Duration.ofSeconds(10)); // 优雅关闭
+            // 停止所有消费者组
+            activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
+            activeConsumerGroups.clear();
+
+            adminClient.close(Duration.ofSeconds(10));
             adminClient = null;
             appendToLog("已成功断开连接。");
             // 断开后，禁用所有控件并切换按钮状态
@@ -240,7 +239,8 @@ public class MainController implements Initializable {
                 topicsListView.getItems().addAll(topicNames);
                 producerTopicComboBox.getItems().clear();
                 producerTopicComboBox.getItems().addAll(topicNames);
-                createConsumerTopicCheckBoxes(topicNames);
+                // 确保所有消费者组Tab中的Topic列表都被刷新
+                updateAllConsumerTopics(new ArrayList<>(topicNames));
                 appendToLog("Topic 列表刷新成功。");
             });
         } catch (ExecutionException | InterruptedException e) {
@@ -248,11 +248,26 @@ public class MainController implements Initializable {
         }
     }
 
-    private void createConsumerTopicCheckBoxes(Set<String> topicNames) {
-        topicCheckBoxContainer.getChildren().clear();
+    private void updateAllConsumerTopics(List<String> topicNames) {
+        // 获取“新增消费者组”这个Tab
+        Tab createNewTab = consumerTabPane.getTabs().get(0);
+
+        // 直接通过ID查找 VBox 节点，并将其转换为 VBox
+        VBox topicContainer = (VBox) createNewTab.getContent().lookup("#topicCheckBoxContainer");
+
+        // 添加一个检查以防万一
+        if (topicContainer == null) {
+            appendToLog("错误：在 '新增消费者组' 选项卡中找不到 topicCheckBoxContainer VBox。");
+            return;
+        }
+
+        // 清空现有的复选框
+        topicContainer.getChildren().clear();
+
+        // 为每个 Topic 创建一个新的复选框并添加到 VBox 中
         topicNames.stream().sorted().forEach(topicName -> {
             CheckBox checkBox = new CheckBox(topicName);
-            topicCheckBoxContainer.getChildren().add(checkBox);
+            topicContainer.getChildren().add(checkBox);
         });
     }
 
@@ -283,6 +298,7 @@ public class MainController implements Initializable {
             producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
         } catch (NumberFormatException e) {
             appendToLog("错误: 批次大小和延迟时间必须是有效的数字。");
+            showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
             return;
         }
 
@@ -294,9 +310,9 @@ public class MainController implements Initializable {
                 Platform.runLater(() -> {
                     if (exception == null) {
                         appendToLog("消息发送成功！");
-                        appendToLog("  - Topic: " + metadata.topic());
-                        appendToLog("  - 分区: " + metadata.partition());
-                        appendToLog("  - 偏移量: " + metadata.offset());
+                        appendToLog("  - Topic: " + metadata.topic());
+                        appendToLog("  - 分区: " + metadata.partition());
+                        appendToLog("  - 偏移量: " + metadata.offset());
                     } else {
                         appendToLog("消息发送失败: " + exception.getMessage());
                     }
@@ -309,222 +325,106 @@ public class MainController implements Initializable {
 
     @FXML
     protected void onStartConsumerButtonClick() {
-        if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
-            return;
-        }
-        if (isConsuming) {
-            appendToLog("错误: 消费者已在运行。");
-            return;
-        }
+        // 从“新增消费者组”Tab中获取UI元素
+        Tab createNewTab = consumerTabPane.getTabs().get(0);
+        TextField groupIdField = (TextField) createNewTab.getContent().lookup("#consumerGroupIdField");
+        VBox topicContainer = (VBox) createNewTab.getContent().lookup("#topicCheckBoxContainer");
 
-        String groupId = consumerGroupIdField.getText();
+        ChoiceBox<String> autoCommitBox = (ChoiceBox) createNewTab.getContent().lookup("#autoCommitChoiceBox");
 
+        String groupId = groupIdField.getText();
         if (groupId == null || groupId.trim().isEmpty()) {
             appendToLog("错误: 消费者组 ID 不能为空。");
             return;
         }
+        if (activeConsumerGroups.containsKey(groupId)) {
+            appendToLog("错误: 消费者组 '" + groupId + "' 已存在。");
+            return;
+        }
 
-        List<String> topicNames = topicCheckBoxContainer.getChildren().stream()
-            .filter(node -> node instanceof CheckBox)
-            .map(node -> (CheckBox) node)
-            .filter(CheckBox::isSelected)
-            .map(CheckBox::getText)
-            .collect(Collectors.toList());
+        List<String> topicNames = topicContainer.getChildren().stream()
+                .filter(node -> node instanceof CheckBox)
+                .map(node -> (CheckBox) node)
+                .filter(CheckBox::isSelected)
+                .map(CheckBox::getText)
+                .collect(Collectors.toList());
 
         if (topicNames.isEmpty()) {
             appendToLog("错误: 订阅 Topic 不能为空。");
             return;
         }
 
-        appendToLog("正在启动消费者...");
-        onStartConsumerButtonClick.setDisable(true);
-        onStopConsumerButtonClick.setDisable(false);
-        // 开启消费后不能更改消费的主题
-        topicCheckBoxContainer.setDisable(true);
-        consumerGroupIdField.setDisable(true);
+        // 动态创建新的Tab来显示这个消费者组
+        Tab newTab = new Tab(groupId);
+        VBox content = new VBox();
+        content.setSpacing(10.0);
+        content.setPadding(new javafx.geometry.Insets(10.0));
 
-        Properties consumerProps = new Properties();
-        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
-        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.valueOf(autoCommitChoiceBox.getValue()));
-        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        // 为新Tab添加UI元素
+        TextArea messagesArea = new TextArea();
+        messagesArea.setEditable(false);
+        messagesArea.setPrefHeight(200.0);
+        messagesArea.setPrefWidth(200.0);
+        messagesArea.setId("consumerMessagesArea_" + groupId);
 
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
-        consumer.subscribe(topicNames);
-        startPollingThread(consumer);
-    }
+        TextArea partitionsArea = new TextArea();
+        partitionsArea.setEditable(false);
+        partitionsArea.setPrefHeight(200.0);
+        partitionsArea.setPrefWidth(200.0);
+        partitionsArea.setId("partitionAssignmentArea_" + groupId);
 
-    private void startPollingThread(KafkaConsumer<String, String> consumer) {
-        isConsuming = true;
-        consumerThread = new Thread(() -> {
-            try {
-                while (isConsuming) {
-                    try {
-                        // 使用较短的轮询时间，以便更快响应停止请求
-                        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                        for (ConsumerRecord<String, String> record : records) {
-                            String message = String.format(
-                                    "收到消息: Topic = %s, 分区 = %d, 偏移量 = %d, Key = %s, Value = %s%n",
-                                    record.topic(), record.partition(), record.offset(), record.key(), record.value());
-                            Platform.runLater(() -> consumerMessagesArea.appendText(message));
-                        }
-                    } catch (org.apache.kafka.common.errors.InterruptException e) {
-                        // 线程被中断，优雅地退出循环
-                        System.out.println("消费者轮询被中断，准备退出");
-                        break;
-                    } catch (Exception e) {
-                        // 处理其他异常
-                        if (isConsuming) {
-                            Platform.runLater(() -> appendToLog("消费者轮询出错: " + e.getMessage()));
-                            // 短暂暂停避免异常情况下的快速循环
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ie) {
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                System.out.println("消费者线程已停止");
-            } catch (Exception e) {
-                // 捕获外层循环中可能发生的异常
-                if (isConsuming) {
-                    Platform.runLater(() -> appendToLog("消费者线程出错: " + e.getMessage()));
-                }
-            } finally {
-                try {
-                    // 尝试优雅地关闭消费者
-                    consumer.close(Duration.ofSeconds(5));
-                } catch (Exception e) {
-                    Platform.runLater(() -> appendToLog("关闭消费者时出错: " + e.getMessage()));
-                }
+        Button stopButton = new Button("停止消费者组");
+        stopButton.setPrefWidth(Double.MAX_VALUE);
+        Button addConsumerButton = new Button("添加一个消费者实例");
+        addConsumerButton.setPrefWidth(Double.MAX_VALUE);
+        Button showAssignmentButton = new Button("显示分区分配");
+        showAssignmentButton.setPrefWidth(Double.MAX_VALUE);
 
-                isConsuming = false;
-                Platform.runLater(() -> {
-                    appendToLog("消费者已停止。");
-                    onStartConsumerButtonClick.setDisable(false);
-                    // 消费停止后可以重新选择消费的主题
-                    topicCheckBoxContainer.setDisable(false);
-                    System.out.println("消费停止后可以重新选择消费的主题");
-                    consumerGroupIdField.setDisable(false);
-                    onShowPartitionAssignmentButtonClick.setDisable(false);
-                });
+        content.getChildren().addAll(
+                new Label("收到的消息"),
+                messagesArea,
+                new Label("分区分配"),
+                partitionsArea,
+                new HBox(5.0, addConsumerButton, showAssignmentButton),
+                stopButton);
+        newTab.setContent(content);
+
+        // 创建新的ConsumerGroupManager实例
+        ConsumerGroupManager manager = new ConsumerGroupManager(
+                groupId,
+                topicNames,
+                Boolean.valueOf(autoCommitBox.getValue()),
+                bootstrapServersField.getText(),
+                messagesArea,
+                partitionsArea,
+                logArea);
+        activeConsumerGroups.put(groupId, manager);
+        consumerGroupTabs.put(groupId, newTab);
+
+        // 绑定按钮事件
+        stopButton.setOnAction(event -> manager.stopAll());
+        addConsumerButton.setOnAction(event -> manager.startNewConsumerInstance());
+        showAssignmentButton.setOnAction(event -> manager.showPartitionAssignments(adminClient));
+
+        // 启动消费者组
+        manager.start(1);
+
+        // 添加新Tab并切换到它
+        consumerTabPane.getTabs().add(newTab);
+        consumerTabPane.getSelectionModel().select(newTab);
+
+        appendToLog("已启动消费者组 '" + groupId + "'。");
+        // 清空模板Tab的输入框，以便于创建新的消费者组
+        groupIdField.clear();
+        topicContainer.getChildren().forEach(node -> {
+            if (node instanceof CheckBox) {
+                ((CheckBox) node).setSelected(false);
             }
         });
-
-        consumerThread.setDaemon(true);
-        consumerThread.start();
-        appendToLog("消费者已成功启动！");
     }
 
-    @FXML
-    protected void onShowPartitionAssignmentButtonClick() {
-        if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
-            return;
-        }
-        String groupId = consumerGroupIdField.getText();
-        if (groupId == null || groupId.trim().isEmpty()) {
-            appendToLog("错误: 消费者组 ID 不能为空。");
-            return;
-        }
-
-        appendToLog("正在查询消费者组 '" + groupId + "' 的分区分配情况...");
-        partitionAssignmentArea.clear();
-
-        Task<Map<String, List<String>>> assignmentTask = new Task<>() {
-            @Override
-            protected Map<String, List<String>> call() throws Exception {
-                DescribeConsumerGroupsResult result = adminClient
-                        .describeConsumerGroups(Collections.singleton(groupId));
-                ConsumerGroupDescription description = result.describedGroups().get(groupId).get();
-
-                Map<String, List<String>> assignments = new HashMap<>();
-                if (description.members() != null) {
-                    for (MemberDescription member : description.members()) {
-                        String memberId = member.consumerId();
-                        if (memberId == null || memberId.isEmpty()) {
-                            memberId = member.host() + "/" + member.clientId();
-                        }
-
-                        List<String> assignedPartitions = member.assignment().topicPartitions().stream()
-                                .map(tp -> tp.topic() + "-" + tp.partition())
-                                .collect(Collectors.toList());
-                        assignments.put(memberId, assignedPartitions);
-                    }
-                }
-                return assignments;
-            }
-        };
-
-        assignmentTask.setOnSucceeded(event -> {
-            Map<String, List<String>> assignments = assignmentTask.getValue();
-            Platform.runLater(() -> {
-                StringBuilder sb = new StringBuilder();
-                sb.append("消费者组 '").append(groupId).append("' 的分区分配:\n");
-                if (assignments.isEmpty()) {
-                    sb.append("当前消费者组没有活跃成员或分配的分区。");
-                } else {
-                    assignments.forEach((memberId, partitions) -> {
-                        sb.append("-> 消费者 ").append(memberId).append(":\n");
-                        if (partitions.isEmpty()) {
-                            sb.append("   - 未分配任何分区。\n");
-                        } else {
-                            partitions.forEach(p -> sb.append("   - ").append(p).append("\n"));
-                        }
-                    });
-                }
-                partitionAssignmentArea.setText(sb.toString());
-                appendToLog("分区分配查询成功。");
-            });
-        });
-
-        assignmentTask.setOnFailed(event -> {
-            Throwable e = assignmentTask.getException();
-            Platform.runLater(() -> {
-                appendToLog("获取分区分配失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
-                partitionAssignmentArea.setText(
-                        "获取分区分配失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getCause().getMessage()));
-            });
-        });
-
-        new Thread(assignmentTask).start();
-    }
-
-    @FXML
-    protected void onStopConsumerButtonClick() {
-        if (!isConsuming) {
-            appendToLog("错误: 消费者未运行。");
-            return;
-        }
-
-        // 只设置标志位，不直接中断线程
-        isConsuming = false;
-        appendToLog("正在尝试停止消费者...");
-        onStopConsumerButtonClick.setDisable(true);
-        System.out.println("正在尝试停止消费者...");
-
-        // 给消费者线程一些时间来优雅地退出
-        new Thread(() -> {
-            try {
-                // 等待最多5秒让消费者线程自然结束
-                if (consumerThread != null) {
-                    consumerThread.join(5000);
-                    // 如果线程仍在运行，才强制中断
-                    if (consumerThread.isAlive()) {
-                        consumerThread.interrupt();
-                    }
-                }
-            } catch (InterruptedException e) {
-                Platform.runLater(() -> appendToLog("等待消费者停止时被中断: " + e.getMessage()));
-            }
-        }).start();
-    }
+    // 移除 onStopConsumerButtonClick 和 onShowPartitionAssignmentButtonClick
+    // 这些功能现在由 ConsumerGroupManager 实例管理，并绑定到动态创建的按钮上
 
     @FXML
     protected void onCreateTopicButtonClick() {
@@ -549,7 +449,6 @@ public class MainController implements Initializable {
             refreshTopicsListAndComboBox();
         } catch (NumberFormatException e) {
             appendToLog("错误: 分区数和副本因子必须是有效的数字。");
-            // 也可以使用 Alert 弹出对话框
             showAlert("输入错误", null, "分区数和副本因子必须是有效的数字。");
         } catch (ExecutionException | InterruptedException e) {
             appendToLog("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
@@ -588,7 +487,7 @@ public class MainController implements Initializable {
     @PreDestroy
     public void cleanup() {
         appendToLog("正在关闭应用程序...");
-        onStopConsumerButtonClick();
+        activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
         if (adminClient != null) {
             adminClient.close(Duration.ofSeconds(10));
         }
