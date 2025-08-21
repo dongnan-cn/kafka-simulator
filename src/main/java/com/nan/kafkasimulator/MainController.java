@@ -88,6 +88,8 @@ public class MainController implements Initializable {
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
+
+
         setAllControlsDisable(true);
         // 初始状态，连接按钮可用，断开按钮不可用
         connectButton.setDisable(false);
@@ -323,6 +325,7 @@ public class MainController implements Initializable {
         Tab createNewTab = consumerTabPane.getTabs().get(0);
         TextField groupIdField = (TextField) createNewTab.getContent().lookup("#consumerGroupIdField");
         VBox topicContainer = (VBox) createNewTab.getContent().lookup("#topicCheckBoxContainer");
+
         ChoiceBox<String> autoCommitBox = (ChoiceBox<String>) createNewTab.getContent().lookup("#autoCommitChoiceBox");
 
         String groupId = groupIdField.getText();
@@ -372,14 +375,15 @@ public class MainController implements Initializable {
         addConsumerButton.setPrefWidth(Double.MAX_VALUE);
         Button showAssignmentButton = new Button("显示分区分配");
         showAssignmentButton.setPrefWidth(Double.MAX_VALUE);
+        Button resumeButton = new Button("恢复消费者组");
+        resumeButton.setPrefWidth(Double.MAX_VALUE);
 
         content.getChildren().addAll(
                 new Label("收到的消息"),
                 messagesArea,
                 new Label("分区分配"),
                 partitionsArea,
-                new HBox(5.0, addConsumerButton, showAssignmentButton),
-                stopButton);
+                new HBox(5.0, addConsumerButton, showAssignmentButton, stopButton, resumeButton));
         newTab.setContent(content);
 
         // 创建新的ConsumerGroupManager实例
@@ -395,12 +399,22 @@ public class MainController implements Initializable {
         consumerGroupTabs.put(groupId, newTab);
 
         // 绑定按钮事件
-        stopButton.setOnAction(event -> manager.stopAll());
+        stopButton.setOnAction(event -> {
+            manager.stopAll();
+            stopButton.setDisable(true);
+            resumeButton.setDisable(false);
+        });
+        resumeButton.setOnAction(event -> {
+            manager.resume();
+            resumeButton.setDisable(true);
+            stopButton.setDisable(false);
+        });
         addConsumerButton.setOnAction(event -> manager.startNewConsumerInstance());
         showAssignmentButton.setOnAction(event -> manager.showPartitionAssignments(adminClient));
 
         // 启动消费者组
         manager.start(1);
+        resumeButton.setDisable(true);
 
         // 添加新Tab并切换到它
         consumerTabPane.getTabs().add(newTab);

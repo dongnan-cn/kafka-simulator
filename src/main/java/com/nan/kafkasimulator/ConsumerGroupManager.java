@@ -11,15 +11,21 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -35,10 +41,10 @@ public class ConsumerGroupManager {
     private final TextArea partitionsArea;
     private final TextArea logArea;
 
-    private final List<Thread> consumerThreads = new ArrayList<>();
-    private final List<KafkaConsumer<String, String>> activeConsumers = new ArrayList<>();
+    private final List<ConsumerInstance> consumers = new ArrayList<>();
+    private ExecutorService executorService;
+    private final AtomicInteger instanceCounter = new AtomicInteger(1);
     private volatile boolean isRunning = false;
-    private int consumerCount = 0;
 
     public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers, TextArea messagesArea, TextArea partitionsArea, TextArea logArea) {
         this.groupId = groupId;
@@ -54,91 +60,70 @@ public class ConsumerGroupManager {
         return groupId;
     }
 
-    public synchronized void start(int numConsumers) {
+    public synchronized void start(int numInstances) {
         if (isRunning) {
-            log("消费者组 " + groupId + " 已经在运行中。");
+            log("消费者组 '" + groupId + "' 已经在运行。");
             return;
         }
+
+        executorService = Executors.newFixedThreadPool(numInstances);
         isRunning = true;
-        log("正在启动消费者组 " + groupId + "...");
-        for (int i = 0; i < numConsumers; i++) {
+        for (int i = 0; i < numInstances; i++) {
             startNewConsumerInstance();
         }
     }
 
     public synchronized void startNewConsumerInstance() {
         if (!isRunning) {
-            log("消费者组 " + groupId + " 未启动，无法添加新的消费者。");
+            log("消费者组 '" + groupId + "' 未启动，无法添加新的消费者。");
             return;
         }
+        String instanceId = groupId + "-instance-" + instanceCounter.getAndIncrement();
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, instanceId);
 
-        consumerCount++;
-        String clientId = "consumer-instance-" + groupId + "-" + consumerCount;
-
-        Properties consumerProps = new Properties();
-        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit);
-        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        consumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
-        activeConsumers.add(consumer);
-        consumer.subscribe(topics);
-
-        Thread consumerThread = new Thread(() -> {
-            try {
-                log("消费者实例 " + clientId + " 正在加入消费者组 " + groupId + " 并开始轮询...");
-                while (isRunning && !Thread.currentThread().isInterrupted()) {
-                    try {
-                        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                        if (!records.isEmpty()) {
-                            log("消费者实例 " + clientId + " 收到 " + records.count() + " 条消息。");
-                        }
-                        for (ConsumerRecord<String, String> record : records) {
-                            String message = String.format(
-                                    "消费者: %s | Topic: %s | 分区: %d | 偏移量: %d | Key: %s | Value: %s%n",
-                                    clientId, record.topic(), record.partition(), record.offset(), record.key(), record.value());
-                            Platform.runLater(() -> messagesArea.appendText(message));
-                        }
-                    } catch (org.apache.kafka.common.errors.InterruptException e) {
-                        Thread.currentThread().interrupt(); // 重新设置中断标志
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                log("消费者轮询出错: " + e.getMessage());
-            } finally {
-                // 优雅关闭消费者
-                try {
-                    consumer.close(Duration.ofSeconds(5));
-                    log("消费者实例 " + clientId + " 已关闭。");
-                } catch (Exception e) {
-                    log("关闭消费者实例出错: " + e.getMessage());
-                }
-            }
-        });
-
-        consumerThread.setDaemon(true);
-        consumerThreads.add(consumerThread);
-        consumerThread.start();
+        ConsumerInstance instance = new ConsumerInstance(props, instanceId, topics, messagesArea, logArea);
+        consumers.add(instance);
+        executorService.submit(instance);
+        log("已为消费者组 '" + groupId + "' 启动新的消费者实例: " + instanceId);
     }
     
     public synchronized void stopAll() {
         if (!isRunning) return;
         isRunning = false;
-        log("正在停止消费者组 " + groupId + " 中的所有消费者实例...");
+        log("正在停止消费者组 '" + groupId + "' 中的所有消费者实例...");
 
-        for (Thread thread : consumerThreads) {
-            if (thread.isAlive()) {
-                thread.interrupt(); // 中断线程，使其退出轮询
+        consumers.forEach(ConsumerInstance::shutdown);
+        consumers.clear(); // 清空列表
+
+        if (executorService != null) {
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
+            } finally {
+                executorService = null;
             }
         }
-        consumerThreads.clear();
-        activeConsumers.clear();
         log("所有消费者实例停止指令已发送。");
+    }
+
+    public synchronized void resume() {
+        if (!isRunning) {
+            log("正在恢复消费者组 '" + groupId + "'...");
+            start(1);
+        } else {
+            log("消费者组 '" + groupId + "' 已经在运行中。");
+        }
     }
 
     public synchronized void showPartitionAssignments(AdminClient adminClient) {
@@ -147,7 +132,6 @@ public class ConsumerGroupManager {
         Task<Void> assignmentTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                // 直接使用 try-catch-finally 块处理，不需要 re-throw
                 try {
                     DescribeConsumerGroupsResult result = adminClient.describeConsumerGroups(Collections.singleton(groupId));
                     ConsumerGroupDescription description = result.describedGroups().get(groupId).get(10, TimeUnit.SECONDS);
@@ -160,7 +144,7 @@ public class ConsumerGroupManager {
                         for (MemberDescription member : description.members()) {
                             String memberId = member.consumerId();
                             if (memberId == null || memberId.isEmpty()) {
-                                memberId = member.clientId(); // 使用 clientId 作为后备
+                                memberId = member.clientId();
                             }
 
                             sb.append("-> 消费者 ").append(memberId).append(":\n");
@@ -179,8 +163,6 @@ public class ConsumerGroupManager {
 
                     Platform.runLater(() -> partitionsArea.setText(sb.toString()));
                 } catch (ExecutionException e) {
-                    // 捕获ExecutionException，其内部的真正异常是getCause()
-                    // 并且在onFailed中处理
                     throw new RuntimeException("获取分区分配失败: ", e.getCause());
                 }
                 return null;
