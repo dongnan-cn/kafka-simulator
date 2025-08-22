@@ -21,6 +21,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.LinkedBlockingQueue;
+
 /**
  * 封装一个 Kafka 消费者组的所有逻辑和状态。
  */
@@ -36,10 +39,12 @@ public class ConsumerGroupManager {
 
     private final List<ConsumerInstance> consumers = new ArrayList<>();
     private ExecutorService executorService;
+    private ExecutorService adminExecutor;
     private final AtomicInteger instanceCounter = new AtomicInteger(1);
     private volatile boolean isRunning = false;
 
-    public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers, TextArea messagesArea, TextArea partitionsArea, TextArea logArea) {
+    public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers,
+            TextArea messagesArea, TextArea partitionsArea, TextArea logArea) {
         this.groupId = groupId;
         this.topics = topics;
         this.autoCommit = autoCommit;
@@ -47,6 +52,7 @@ public class ConsumerGroupManager {
         this.messagesArea = messagesArea;
         this.partitionsArea = partitionsArea;
         this.logArea = logArea;
+
     }
 
     public String getGroupId() {
@@ -59,7 +65,12 @@ public class ConsumerGroupManager {
             return;
         }
 
-        executorService = Executors.newFixedThreadPool(numInstances);
+        //基础消费者数量是numInstances，随着手动添加，还会更多，所以不能固定大小线程池
+        executorService = new ThreadPoolExecutor(numInstances, Integer.MAX_VALUE,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<Runnable>());
+
+        adminExecutor = Executors.newFixedThreadPool(1);
         isRunning = true;
         for (int i = 0; i < numInstances; i++) {
             startNewConsumerInstance();
@@ -83,10 +94,12 @@ public class ConsumerGroupManager {
 
         ConsumerInstance instance = new ConsumerInstance(props, instanceId, topics, messagesArea, logArea);
         consumers.add(instance);
+
         executorService.submit(instance);
+        
         log("已为消费者组 '" + groupId + "' 启动新的消费者实例: " + instanceId);
     }
-    
+
     public synchronized void stopAll() {
         if (!isRunning) return;
         isRunning = false;
@@ -107,6 +120,19 @@ public class ConsumerGroupManager {
                 executorService = null;
             }
         }
+
+        if (adminExecutor != null) {
+            adminExecutor.shutdown();
+            try {
+                if (!adminExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    adminExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                adminExecutor.shutdownNow();
+            } finally {
+                adminExecutor = null;
+            }
+        }
         log("所有消费者实例停止指令已发送。");
     }
 
@@ -121,13 +147,15 @@ public class ConsumerGroupManager {
 
     public synchronized void showPartitionAssignments(AdminClient adminClient) {
         Platform.runLater(() -> partitionsArea.clear());
-        
+
         Task<Void> assignmentTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
                 try {
-                    DescribeConsumerGroupsResult result = adminClient.describeConsumerGroups(Collections.singleton(groupId));
-                    ConsumerGroupDescription description = result.describedGroups().get(groupId).get(10, TimeUnit.SECONDS);
+                    DescribeConsumerGroupsResult result = adminClient
+                            .describeConsumerGroups(Collections.singleton(groupId));
+                    ConsumerGroupDescription description = result.describedGroups().get(groupId).get(10,
+                            TimeUnit.SECONDS);
 
                     StringBuilder sb = new StringBuilder();
                     sb.append("消费者组 '").append(groupId).append("' 的分区分配:\n");
@@ -169,13 +197,13 @@ public class ConsumerGroupManager {
                 partitionsArea.setText("获取分区分配失败: " + e.getMessage());
             });
         });
-        new Thread(assignmentTask).start();
+        adminExecutor.submit(assignmentTask);
     }
 
     public boolean isRunning() {
         return isRunning;
     }
-    
+
     private void log(String message) {
         Platform.runLater(() -> logArea.appendText(message + "\n"));
     }

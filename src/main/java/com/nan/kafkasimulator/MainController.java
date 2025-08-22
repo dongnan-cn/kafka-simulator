@@ -368,13 +368,10 @@ public class MainController implements Initializable {
 
         HBox buttonBox = new HBox();
         Button stopButton = new Button("停止消费者组");
-        // stopButton.setPrefWidth(Double.MAX_VALUE);
         Button addConsumerButton = new Button("添加一个消费者实例");
-        // addConsumerButton.setPrefWidth(Double.MAX_VALUE);
         Button showAssignmentButton = new Button("显示分区分配");
         showAssignmentButton.setPrefWidth(Double.MAX_VALUE);
         Button resumeButton = new Button("恢复消费者组");
-        // resumeButton.setPrefWidth(Double.MAX_VALUE);
         buttonBox.getChildren().addAll(addConsumerButton, stopButton, resumeButton);
         buttonBox.setSpacing(10); // 设置按钮之间的间距为 10 像素
         buttonBox.setAlignment(javafx.geometry.Pos.CENTER);
