@@ -14,7 +14,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.serialization.StringSerializer;
-import jakarta.annotation.PreDestroy;
 
 import java.net.URL;
 import java.time.Duration;
@@ -87,8 +86,6 @@ public class MainController implements Initializable {
 
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
-
-
 
         setAllControlsDisable(true);
         // 初始状态，连接按钮可用，断开按钮不可用
@@ -369,21 +366,26 @@ public class MainController implements Initializable {
         partitionsArea.setPrefWidth(200.0);
         partitionsArea.setId("partitionAssignmentArea_" + groupId);
 
+        HBox buttonBox = new HBox();
         Button stopButton = new Button("停止消费者组");
-        stopButton.setPrefWidth(Double.MAX_VALUE);
+        // stopButton.setPrefWidth(Double.MAX_VALUE);
         Button addConsumerButton = new Button("添加一个消费者实例");
-        addConsumerButton.setPrefWidth(Double.MAX_VALUE);
+        // addConsumerButton.setPrefWidth(Double.MAX_VALUE);
         Button showAssignmentButton = new Button("显示分区分配");
         showAssignmentButton.setPrefWidth(Double.MAX_VALUE);
         Button resumeButton = new Button("恢复消费者组");
-        resumeButton.setPrefWidth(Double.MAX_VALUE);
+        // resumeButton.setPrefWidth(Double.MAX_VALUE);
+        buttonBox.getChildren().addAll(addConsumerButton, stopButton, resumeButton);
+        buttonBox.setSpacing(10); // 设置按钮之间的间距为 10 像素
+        buttonBox.setAlignment(javafx.geometry.Pos.CENTER);
 
         content.getChildren().addAll(
                 new Label("收到的消息"),
                 messagesArea,
                 new Label("分区分配"),
                 partitionsArea,
-                new HBox(5.0, addConsumerButton, showAssignmentButton, stopButton, resumeButton));
+                showAssignmentButton,
+                buttonBox);
         newTab.setContent(content);
 
         // 创建新的ConsumerGroupManager实例
