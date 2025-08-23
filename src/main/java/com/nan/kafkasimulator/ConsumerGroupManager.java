@@ -68,7 +68,6 @@ public class ConsumerGroupManager {
                 0L, TimeUnit.MILLISECONDS,
                 new SynchronousQueue<Runnable>());
 
-        adminExecutor = Executors.newFixedThreadPool(1);
         isRunning = true;
         for (int i = 0; i < numInstances; i++) {
             startNewConsumerInstance();
@@ -186,6 +185,9 @@ public class ConsumerGroupManager {
                 partitionsArea.setText("获取分区分配失败: " + e.getMessage());
             });
         });
+        if (adminExecutor == null) {
+            adminExecutor = Executors.newFixedThreadPool(1);
+        }
         adminExecutor.submit(assignmentTask);
     }
 

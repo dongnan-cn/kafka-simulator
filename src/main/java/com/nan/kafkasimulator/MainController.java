@@ -561,8 +561,7 @@ public class MainController implements Initializable {
                 Boolean.valueOf(autoCommitBox.getValue()),
                 bootstrapServersField.getText(),
                 messagesArea,
-                partitionsArea
-                );
+                partitionsArea);
         activeConsumerGroups.put(groupId, manager);
         consumerGroupTabs.put(groupId, newTab);
 
