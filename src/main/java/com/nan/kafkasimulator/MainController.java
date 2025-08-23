@@ -1,6 +1,7 @@
 package com.nan.kafkasimulator;
 
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -19,7 +20,10 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class MainController implements Initializable {
@@ -64,6 +68,20 @@ public class MainController implements Initializable {
     private Button onDeleteTopicButtonClick;
     @FXML
     private Button onSendButtonClick;
+    @FXML
+    private TextField messagesPerSecondField;
+    @FXML
+    private ChoiceBox<String> dataTypeChoiceBox;
+    @FXML
+    private Label sentCountLabel;
+    @FXML
+    private TextField keyLengthField;
+    @FXML
+    private TextField jsonFieldsCountField;
+    @FXML
+    private Button startAutoSendButton;
+    @FXML
+    private Button stopAutoSendButton;
 
     // 新增：与消费者组管理Tab相关的UI元素
     @FXML
@@ -72,6 +90,7 @@ public class MainController implements Initializable {
     private ChoiceBox<String> autoCommitChoiceBox;
 
     private AdminClient adminClient;
+    private KafkaProducer<String, String> producer;
     // 移除旧的单消费者线程和状态管理
     // private volatile boolean isConsuming = false;
     // private Thread consumerThread;
@@ -79,6 +98,10 @@ public class MainController implements Initializable {
     // 新增：用于管理所有消费者组实例的Map
     private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
     private final Map<String, Tab> consumerGroupTabs = new HashMap<>();
+    private Map<String, ScheduledExecutorService> autoSendExecutors = new HashMap<>();
+    private Map<String, AtomicLong> sentCounts = new HashMap<>();
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private final Random random = new Random();
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -93,6 +116,148 @@ public class MainController implements Initializable {
         disconnectButton.setDisable(true);
         autoCommitChoiceBox.getItems().addAll("true", "false");
         autoCommitChoiceBox.setValue("true");
+        dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON"));
+        dataTypeChoiceBox.setValue("String");
+        dataTypeChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            jsonFieldsCountField.setDisable(!"JSON".equals(newVal));
+            if ("JSON".equals(newVal)) {
+                producerValueArea.setDisable(true);
+                producerValueArea.setPromptText("JSON数据将自动生成");
+            } else {
+                producerValueArea.setDisable(false);
+                producerValueArea.setPromptText("输入要发送的消息");
+            }
+        });
+        initializeProducer();
+    }
+
+    @FXML
+    private void onStartAutoSendButtonClick() {
+        String topic = producerTopicComboBox.getValue();
+        if (producer == null || topic == null || topic.isEmpty()) {
+            appendToLog("错误: 请先连接到 Kafka 并选择一个 Topic。");
+            return;
+        }
+
+        if (autoSendExecutors.containsKey(topic)) {
+            appendToLog("错误: Topic \"" + topic + "\" 的自动发送任务已在运行。");
+            return;
+        }
+
+        try {
+            int messagesPerSecond = Integer.parseInt(messagesPerSecondField.getText());
+            if (messagesPerSecond <= 0) {
+                appendToLog("错误: 每秒消息数必须大于 0。");
+                return;
+            }
+            long intervalMs = 1000 / messagesPerSecond;
+            String dataType = dataTypeChoiceBox.getValue();
+            int keyLength = Integer.parseInt(keyLengthField.getText());
+            int jsonFieldsCount = Integer.parseInt(jsonFieldsCountField.getText());
+
+            // 禁用相关 UI 控件以防用户误操作
+            producerTopicComboBox.setDisable(true);
+            startAutoSendButton.setDisable(true);
+            stopAutoSendButton.setDisable(false);
+            messagesPerSecondField.setDisable(true);
+            dataTypeChoiceBox.setDisable(true);
+            keyLengthField.setDisable(true);
+            jsonFieldsCountField.setDisable(true);
+            onSendButtonClick.setDisable(true);
+
+            appendToLog("开始向 Topic: \"" + topic + "\" 自动发送 " + messagesPerSecond + " msg/s...");
+
+            // 初始化计数器
+            sentCounts.put(topic, new AtomicLong(0));
+
+            // 创建并安排定时任务
+            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+            executor.scheduleAtFixedRate(() -> {
+                String key = generateRandomString(keyLength);
+                String value;
+
+                if ("JSON".equals(dataType)) {
+                    value = generateRandomJson(jsonFieldsCount);
+                } else { // String
+                    value = generateRandomString(20); // 默认字符串长度为20
+                }
+
+                ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
+                producer.send(record, (metadata, exception) -> {
+                    if (exception == null) {
+                        sentCounts.get(topic).incrementAndGet();
+                        Platform.runLater(() -> sentCountLabel.setText("已发送: " + sentCounts.get(topic).get()));
+                    } else {
+                        Platform.runLater(() -> appendToLog("发送消息失败: " + exception.getMessage()));
+                    }
+                });
+            }, 0, intervalMs, TimeUnit.MILLISECONDS);
+
+            autoSendExecutors.put(topic, executor);
+
+        } catch (NumberFormatException e) {
+            appendToLog("错误: 每秒消息数、长度或字段数必须是有效的数字。");
+        }
+    }
+
+    @FXML
+    private void onStopAutoSendButtonClick() {
+        String topic = producerTopicComboBox.getValue();
+        if (!autoSendExecutors.containsKey(topic)) {
+            appendToLog("错误: Topic \"" + topic + "\" 的自动发送任务未在运行。");
+            return;
+        }
+
+        ScheduledExecutorService executor = autoSendExecutors.get(topic);
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        } finally {
+            autoSendExecutors.remove(topic);
+            sentCounts.remove(topic);
+            appendToLog("Topic \"" + topic + "\" 的自动发送任务已停止。");
+
+            // 恢复 UI 状态
+            producerTopicComboBox.setDisable(false);
+            startAutoSendButton.setDisable(false);
+            stopAutoSendButton.setDisable(true);
+            messagesPerSecondField.setDisable(false);
+            dataTypeChoiceBox.setDisable(false);
+            keyLengthField.setDisable(false);
+            if ("JSON".equals(dataTypeChoiceBox.getValue())) {
+                jsonFieldsCountField.setDisable(false);
+                producerValueArea.setDisable(true);
+            } else {
+                jsonFieldsCountField.setDisable(true);
+                producerValueArea.setDisable(false);
+            }
+            onSendButtonClick.setDisable(false);
+            Platform.runLater(() -> sentCountLabel.setText("已发送: 0"));
+        }
+    }
+
+    private String generateRandomString(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
+        }
+        return sb.toString();
+    }
+
+    private String generateRandomJson(int fieldCount) {
+        StringBuilder sb = new StringBuilder("{");
+        for (int i = 0; i < fieldCount; i++) {
+            sb.append("\"key").append(i).append("\":\"").append(generateRandomString(8)).append("\"");
+            if (i < fieldCount - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("}");
+        return sb.toString();
     }
 
     private void setAllControlsDisable(boolean disable) {
@@ -263,6 +428,25 @@ public class MainController implements Initializable {
         });
     }
 
+    private void initializeProducer() {
+        Properties producerProps = new Properties();
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
+        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
+
+        try {
+            producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText()));
+            producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
+        } catch (NumberFormatException e) {
+            appendToLog("错误: 批次大小和延迟时间必须是有效的数字。");
+            showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
+            return;
+        }
+
+        this.producer = new KafkaProducer<>(producerProps);
+    }
+
     @FXML
     protected void onSendButtonClick() {
         if (adminClient == null) {
@@ -279,22 +463,7 @@ public class MainController implements Initializable {
         String key = producerKeyField.getText();
         String value = producerValueArea.getText();
 
-        Properties producerProps = new Properties();
-        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServersField.getText());
-        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
-
         try {
-            producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText()));
-            producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
-        } catch (NumberFormatException e) {
-            appendToLog("错误: 批次大小和延迟时间必须是有效的数字。");
-            showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
-            return;
-        }
-
-        try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
             appendToLog("正在发送消息...");
@@ -493,6 +662,25 @@ public class MainController implements Initializable {
     public void cleanup() {
         appendToLog("正在关闭应用程序...");
         activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
+
+        // 关闭所有自动发送任务
+        if (!autoSendExecutors.isEmpty()) {
+            appendToLog("正在关闭所有自动发送任务...");
+            autoSendExecutors.values().forEach(executor -> {
+                executor.shutdown();
+                try {
+                    if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        executor.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    executor.shutdownNow();
+                }
+            });
+        }
+        if (producer != null) {
+            producer.close();
+            appendToLog("生产者已关闭。");
+        }
         if (adminClient != null) {
             adminClient.close(Duration.ofSeconds(10));
         }

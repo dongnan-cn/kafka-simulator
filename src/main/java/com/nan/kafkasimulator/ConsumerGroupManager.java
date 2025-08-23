@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * 封装一个 Kafka 消费者组的所有逻辑和状态。
@@ -68,7 +69,7 @@ public class ConsumerGroupManager {
         //基础消费者数量是numInstances，随着手动添加，还会更多，所以不能固定大小线程池
         executorService = new ThreadPoolExecutor(numInstances, Integer.MAX_VALUE,
                                       0L, TimeUnit.MILLISECONDS,
-                                      new LinkedBlockingQueue<Runnable>());
+                                      new SynchronousQueue<Runnable>());
 
         adminExecutor = Executors.newFixedThreadPool(1);
         isRunning = true;
