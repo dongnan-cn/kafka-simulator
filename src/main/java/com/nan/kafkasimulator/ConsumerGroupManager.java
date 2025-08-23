@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
+import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
  * 封装一个 Kafka 消费者组的所有逻辑和状态。
@@ -35,7 +36,6 @@ public class ConsumerGroupManager {
 
     private final TextArea messagesArea;
     private final TextArea partitionsArea;
-    private final TextArea logArea;
 
     private final List<ConsumerInstance> consumers = new ArrayList<>();
     private ExecutorService executorService;
@@ -44,15 +44,13 @@ public class ConsumerGroupManager {
     private volatile boolean isRunning = false;
 
     public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers,
-            TextArea messagesArea, TextArea partitionsArea, TextArea logArea) {
+            TextArea messagesArea, TextArea partitionsArea) {
         this.groupId = groupId;
         this.topics = topics;
         this.autoCommit = autoCommit;
         this.bootstrapServers = bootstrapServers;
         this.messagesArea = messagesArea;
         this.partitionsArea = partitionsArea;
-        this.logArea = logArea;
-
     }
 
     public String getGroupId() {
@@ -65,10 +63,10 @@ public class ConsumerGroupManager {
             return;
         }
 
-        //基础消费者数量是numInstances，随着手动添加，还会更多，所以不能固定大小线程池
+        // 基础消费者数量是numInstances，随着手动添加，还会更多，所以不能固定大小线程池
         executorService = new ThreadPoolExecutor(numInstances, Integer.MAX_VALUE,
-                                      0L, TimeUnit.MILLISECONDS,
-                                      new SynchronousQueue<Runnable>());
+                0L, TimeUnit.MILLISECONDS,
+                new SynchronousQueue<Runnable>());
 
         adminExecutor = Executors.newFixedThreadPool(1);
         isRunning = true;
@@ -92,16 +90,16 @@ public class ConsumerGroupManager {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, instanceId);
 
-        ConsumerInstance instance = new ConsumerInstance(props, instanceId, topics, messagesArea, logArea);
+        ConsumerInstance instance = new ConsumerInstance(props, instanceId, topics, messagesArea);
         consumers.add(instance);
-
         executorService.submit(instance);
-        
+
         log("已为消费者组 '" + groupId + "' 启动新的消费者实例: " + instanceId);
     }
 
     public synchronized void stopAll() {
-        if (!isRunning) return;
+        if (!isRunning)
+            return;
         isRunning = false;
         log("正在停止消费者组 '" + groupId + "' 中的所有消费者实例...");
 
@@ -134,15 +132,6 @@ public class ConsumerGroupManager {
             }
         }
         log("所有消费者实例停止指令已发送。");
-    }
-
-    public synchronized void resume() {
-        if (!isRunning) {
-            log("正在恢复消费者组 '" + groupId + "'...");
-            start(1);
-        } else {
-            log("消费者组 '" + groupId + "' 已经在运行中。");
-        }
     }
 
     public synchronized void showPartitionAssignments(AdminClient adminClient) {
@@ -204,7 +193,13 @@ public class ConsumerGroupManager {
         return isRunning;
     }
 
-    private void log(String message) {
-        Platform.runLater(() -> logArea.appendText(message + "\n"));
+    public void pauseAll() {
+        log("正在停止消费者组 '" + groupId + "' 中的所有消费者实例...");
+        consumers.forEach(ConsumerInstance::pause);
+    }
+
+    public void resumeAll() {
+        log("正在停止消费者组 '" + groupId + "' 中的所有消费者实例...");
+        consumers.forEach(ConsumerInstance::resume);
     }
 }

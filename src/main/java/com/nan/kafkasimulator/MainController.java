@@ -16,6 +16,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.serialization.StringSerializer;
 
+import com.nan.kafkasimulator.utils.Logger;
+
 import java.net.URL;
 import java.time.Duration;
 import java.util.*;
@@ -91,9 +93,6 @@ public class MainController implements Initializable {
 
     private AdminClient adminClient;
     private KafkaProducer<String, String> producer;
-    // 移除旧的单消费者线程和状态管理
-    // private volatile boolean isConsuming = false;
-    // private Thread consumerThread;
 
     // 新增：用于管理所有消费者组实例的Map
     private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
@@ -128,6 +127,7 @@ public class MainController implements Initializable {
                 producerValueArea.setPromptText("输入要发送的消息");
             }
         });
+        Logger.getInstance().initialize(logArea);
         initializeProducer();
     }
 
@@ -144,13 +144,13 @@ public class MainController implements Initializable {
             return;
         }
 
-try {
-    double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
-    if (messagesPerSecond <= 0) {
-        appendToLog("错误: 每秒消息数必须大于 0。");
-        return;
-    }
-    long intervalMs = (long) (1000 / messagesPerSecond);
+        try {
+            double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
+            if (messagesPerSecond <= 0) {
+                appendToLog("错误: 每秒消息数必须大于 0。");
+                return;
+            }
+            long intervalMs = (long) (1000 / messagesPerSecond);
             String dataType = dataTypeChoiceBox.getValue();
             int keyLength = Integer.parseInt(keyLengthField.getText());
             int jsonFieldsCount = Integer.parseInt(jsonFieldsCountField.getText());
@@ -561,19 +561,19 @@ try {
                 Boolean.valueOf(autoCommitBox.getValue()),
                 bootstrapServersField.getText(),
                 messagesArea,
-                partitionsArea,
-                logArea);
+                partitionsArea
+                );
         activeConsumerGroups.put(groupId, manager);
         consumerGroupTabs.put(groupId, newTab);
 
         // 绑定按钮事件
         stopButton.setOnAction(event -> {
-            manager.stopAll();
+            manager.pauseAll();
             stopButton.setDisable(true);
             resumeButton.setDisable(false);
         });
         resumeButton.setOnAction(event -> {
-            manager.resume();
+            manager.resumeAll();
             resumeButton.setDisable(true);
             stopButton.setDisable(false);
         });
@@ -597,9 +597,6 @@ try {
             }
         });
     }
-
-    // 移除 onStopConsumerButtonClick 和 onShowPartitionAssignmentButtonClick
-    // 这些功能现在由 ConsumerGroupManager 实例管理，并绑定到动态创建的按钮上
 
     @FXML
     protected void onCreateTopicButtonClick() {
