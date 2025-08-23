@@ -144,13 +144,13 @@ public class MainController implements Initializable {
             return;
         }
 
-        try {
-            int messagesPerSecond = Integer.parseInt(messagesPerSecondField.getText());
-            if (messagesPerSecond <= 0) {
-                appendToLog("错误: 每秒消息数必须大于 0。");
-                return;
-            }
-            long intervalMs = 1000 / messagesPerSecond;
+try {
+    double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
+    if (messagesPerSecond <= 0) {
+        appendToLog("错误: 每秒消息数必须大于 0。");
+        return;
+    }
+    long intervalMs = (long) (1000 / messagesPerSecond);
             String dataType = dataTypeChoiceBox.getValue();
             int keyLength = Integer.parseInt(keyLengthField.getText());
             int jsonFieldsCount = Integer.parseInt(jsonFieldsCountField.getText());
