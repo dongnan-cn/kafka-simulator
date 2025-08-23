@@ -135,19 +135,19 @@ public class MainController implements Initializable {
     private void onStartAutoSendButtonClick() {
         String topic = producerTopicComboBox.getValue();
         if (producer == null || topic == null || topic.isEmpty()) {
-            appendToLog("错误: 请先连接到 Kafka 并选择一个 Topic。");
+            Logger.log("错误: 请先连接到 Kafka 并选择一个 Topic。");
             return;
         }
 
         if (autoSendExecutors.containsKey(topic)) {
-            appendToLog("错误: Topic \"" + topic + "\" 的自动发送任务已在运行。");
+            Logger.log("错误: Topic \"" + topic + "\" 的自动发送任务已在运行。");
             return;
         }
 
         try {
             double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
             if (messagesPerSecond <= 0) {
-                appendToLog("错误: 每秒消息数必须大于 0。");
+                Logger.log("错误: 每秒消息数必须大于 0。");
                 return;
             }
             long intervalMs = (long) (1000 / messagesPerSecond);
@@ -165,7 +165,7 @@ public class MainController implements Initializable {
             jsonFieldsCountField.setDisable(true);
             onSendButtonClick.setDisable(true);
 
-            appendToLog("开始向 Topic: \"" + topic + "\" 自动发送 " + messagesPerSecond + " msg/s...");
+            Logger.log("开始向 Topic: \"" + topic + "\" 自动发送 " + messagesPerSecond + " msg/s...");
 
             // 初始化计数器
             sentCounts.put(topic, new AtomicLong(0));
@@ -188,7 +188,7 @@ public class MainController implements Initializable {
                         sentCounts.get(topic).incrementAndGet();
                         Platform.runLater(() -> sentCountLabel.setText("已发送: " + sentCounts.get(topic).get()));
                     } else {
-                        Platform.runLater(() -> appendToLog("发送消息失败: " + exception.getMessage()));
+                        Platform.runLater(() -> Logger.log("发送消息失败: " + exception.getMessage()));
                     }
                 });
             }, 0, intervalMs, TimeUnit.MILLISECONDS);
@@ -196,7 +196,7 @@ public class MainController implements Initializable {
             autoSendExecutors.put(topic, executor);
 
         } catch (NumberFormatException e) {
-            appendToLog("错误: 每秒消息数、长度或字段数必须是有效的数字。");
+            Logger.log("错误: 每秒消息数、长度或字段数必须是有效的数字。");
         }
     }
 
@@ -204,7 +204,7 @@ public class MainController implements Initializable {
     private void onStopAutoSendButtonClick() {
         String topic = producerTopicComboBox.getValue();
         if (!autoSendExecutors.containsKey(topic)) {
-            appendToLog("错误: Topic \"" + topic + "\" 的自动发送任务未在运行。");
+            Logger.log("错误: Topic \"" + topic + "\" 的自动发送任务未在运行。");
             return;
         }
 
@@ -219,7 +219,7 @@ public class MainController implements Initializable {
         } finally {
             autoSendExecutors.remove(topic);
             sentCounts.remove(topic);
-            appendToLog("Topic \"" + topic + "\" 的自动发送任务已停止。");
+            Logger.log("Topic \"" + topic + "\" 的自动发送任务已停止。");
 
             // 恢复 UI 状态
             producerTopicComboBox.setDisable(false);
@@ -289,7 +289,7 @@ public class MainController implements Initializable {
         }
 
         connectButton.setDisable(true);
-        appendToLog("正在尝试连接到 Kafka 集群: " + bootstrapServers);
+        Logger.log("正在尝试连接到 Kafka 集群: " + bootstrapServers);
 
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -309,7 +309,7 @@ public class MainController implements Initializable {
 
         connectTask.setOnSucceeded(event -> {
             Platform.runLater(() -> {
-                appendToLog("成功连接到 Kafka 集群！");
+                Logger.log("成功连接到 Kafka 集群！");
                 try {
                     displayClusterMetadata();
                     refreshTopicsListAndComboBox();
@@ -318,7 +318,7 @@ public class MainController implements Initializable {
                     connectButton.setDisable(true);
                     disconnectButton.setDisable(false);
                 } catch (ExecutionException | InterruptedException e) {
-                    appendToLog("获取集群元数据失败: " + e.getMessage());
+                    Logger.log("获取集群元数据失败: " + e.getMessage());
                     setAllControlsDisable(true);
                 }
             });
@@ -327,7 +327,7 @@ public class MainController implements Initializable {
         connectTask.setOnFailed(event -> {
             Platform.runLater(() -> {
                 Throwable e = connectTask.getException();
-                appendToLog("连接失败: " + e.getMessage());
+                Logger.log("连接失败: " + e.getMessage());
                 setAllControlsDisable(true);
                 connectButton.setDisable(false);
             });
@@ -347,20 +347,20 @@ public class MainController implements Initializable {
     @FXML
     protected void onDisconnectButtonClick() {
         if (adminClient != null) {
-            appendToLog("正在断开与 Kafka 集群的连接...");
+            Logger.log("正在断开与 Kafka 集群的连接...");
             // 停止所有消费者组
             activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
             activeConsumerGroups.clear();
 
             adminClient.close(Duration.ofSeconds(10));
             adminClient = null;
-            appendToLog("已成功断开连接。");
+            Logger.log("已成功断开连接。");
             // 断开后，禁用所有控件并切换按钮状态
             setAllControlsDisable(true);
             connectButton.setDisable(false);
             disconnectButton.setDisable(true);
         } else {
-            appendToLog("当前未连接到 Kafka 集群。");
+            Logger.log("当前未连接到 Kafka 集群。");
         }
     }
 
@@ -370,9 +370,9 @@ public class MainController implements Initializable {
         DescribeClusterResult describeClusterResult = adminClient.describeCluster();
         Collection<Node> nodes = describeClusterResult.nodes().get();
 
-        appendToLog("\n--- Broker 信息 ---");
+        Logger.log("\n--- Broker 信息 ---");
         for (Node node : nodes) {
-            appendToLog("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
+            Logger.log("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
         }
     }
 
@@ -383,11 +383,11 @@ public class MainController implements Initializable {
 
     private void refreshTopicsListAndComboBox() {
         if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
+            Logger.log("错误: 请先连接到 Kafka 集群。");
             return;
         }
 
-        appendToLog("正在刷新 Topic 列表...");
+        Logger.log("正在刷新 Topic 列表...");
         try {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
@@ -398,10 +398,10 @@ public class MainController implements Initializable {
                 producerTopicComboBox.getItems().addAll(topicNames);
                 // 确保所有消费者组Tab中的Topic列表都被刷新
                 updateAllConsumerTopics(new ArrayList<>(topicNames));
-                appendToLog("Topic 列表刷新成功。");
+                Logger.log("Topic 列表刷新成功。");
             });
         } catch (ExecutionException | InterruptedException e) {
-            appendToLog("刷新 Topic 列表失败: " + e.getMessage());
+            Logger.log("刷新 Topic 列表失败: " + e.getMessage());
         }
     }
 
@@ -414,7 +414,7 @@ public class MainController implements Initializable {
 
         // 添加一个检查以防万一
         if (topicContainer == null) {
-            appendToLog("错误：在 '新增消费者组' 选项卡中找不到 topicCheckBoxContainer VBox。");
+            Logger.log("错误：在 '新增消费者组' 选项卡中找不到 topicCheckBoxContainer VBox。");
             return;
         }
 
@@ -439,7 +439,7 @@ public class MainController implements Initializable {
             producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText()));
             producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
         } catch (NumberFormatException e) {
-            appendToLog("错误: 批次大小和延迟时间必须是有效的数字。");
+            Logger.log("错误: 批次大小和延迟时间必须是有效的数字。");
             showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
             return;
         }
@@ -450,13 +450,13 @@ public class MainController implements Initializable {
     @FXML
     protected void onSendButtonClick() {
         if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
+            Logger.log("错误: 请先连接到 Kafka 集群。");
             return;
         }
 
         String topicName = producerTopicComboBox.getValue();
         if (topicName == null || topicName.isEmpty()) {
-            appendToLog("错误: 请选择一个 Topic。");
+            Logger.log("错误: 请选择一个 Topic。");
             return;
         }
 
@@ -466,21 +466,21 @@ public class MainController implements Initializable {
         try {
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
-            appendToLog("正在发送消息...");
+            Logger.log("正在发送消息...");
             producer.send(record, (metadata, exception) -> {
                 Platform.runLater(() -> {
                     if (exception == null) {
-                        appendToLog("消息发送成功！");
-                        appendToLog("  - Topic: " + metadata.topic());
-                        appendToLog("  - 分区: " + metadata.partition());
-                        appendToLog("  - 偏移量: " + metadata.offset());
+                        Logger.log("消息发送成功！");
+                        Logger.log("  - Topic: " + metadata.topic());
+                        Logger.log("  - 分区: " + metadata.partition());
+                        Logger.log("  - 偏移量: " + metadata.offset());
                     } else {
-                        appendToLog("消息发送失败: " + exception.getMessage());
+                        Logger.log("消息发送失败: " + exception.getMessage());
                     }
                 });
             });
         } catch (Exception e) {
-            appendToLog("消息发送失败: " + e.getMessage());
+            Logger.log("消息发送失败: " + e.getMessage());
         }
     }
 
@@ -496,11 +496,11 @@ public class MainController implements Initializable {
 
         String groupId = groupIdField.getText();
         if (groupId == null || groupId.trim().isEmpty()) {
-            appendToLog("错误: 消费者组 ID 不能为空。");
+            Logger.log("错误: 消费者组 ID 不能为空。");
             return;
         }
         if (activeConsumerGroups.containsKey(groupId)) {
-            appendToLog("错误: 消费者组 '" + groupId + "' 已存在。");
+            Logger.log("错误: 消费者组 '" + groupId + "' 已存在。");
             return;
         }
 
@@ -512,7 +512,7 @@ public class MainController implements Initializable {
                 .collect(Collectors.toList());
 
         if (topicNames.isEmpty()) {
-            appendToLog("错误: 订阅 Topic 不能为空。");
+            Logger.log("错误: 订阅 Topic 不能为空。");
             return;
         }
 
@@ -588,7 +588,7 @@ public class MainController implements Initializable {
         consumerTabPane.getTabs().add(newTab);
         consumerTabPane.getSelectionModel().select(newTab);
 
-        appendToLog("已启动消费者组 '" + groupId + "'。");
+        Logger.log("已启动消费者组 '" + groupId + "'。");
         // 清空模板Tab的输入框，以便于创建新的消费者组
         groupIdField.clear();
         topicContainer.getChildren().forEach(node -> {
@@ -601,13 +601,13 @@ public class MainController implements Initializable {
     @FXML
     protected void onCreateTopicButtonClick() {
         if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
+            Logger.log("错误: 请先连接到 Kafka 集群。");
             return;
         }
 
         String topicName = newTopicNameField.getText();
         if (topicName == null || topicName.trim().isEmpty()) {
-            appendToLog("错误: Topic 名称不能为空。");
+            Logger.log("错误: Topic 名称不能为空。");
             return;
         }
 
@@ -617,52 +617,45 @@ public class MainController implements Initializable {
 
             NewTopic newTopic = new NewTopic(topicName, numPartitions, replicationFactor);
             adminClient.createTopics(Collections.singleton(newTopic)).all().get();
-            appendToLog("成功创建 Topic: " + topicName);
+            Logger.log("成功创建 Topic: " + topicName);
             refreshTopicsListAndComboBox();
         } catch (NumberFormatException e) {
-            appendToLog("错误: 分区数和副本因子必须是有效的数字。");
+            Logger.log("错误: 分区数和副本因子必须是有效的数字。");
             showAlert("输入错误", null, "分区数和副本因子必须是有效的数字。");
         } catch (ExecutionException | InterruptedException e) {
-            appendToLog("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            Logger.log("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
     }
 
     @FXML
     protected void onDeleteTopicButtonClick() {
         if (adminClient == null) {
-            appendToLog("错误: 请先连接到 Kafka 集群。");
+            Logger.log("错误: 请先连接到 Kafka 集群。");
             return;
         }
 
         String selectedTopic = topicsListView.getSelectionModel().getSelectedItem();
         if (selectedTopic == null || selectedTopic.trim().isEmpty()) {
-            appendToLog("错误: 请选择一个 Topic 来删除。");
+            Logger.log("错误: 请选择一个 Topic 来删除。");
             return;
         }
 
         try {
             adminClient.deleteTopics(Collections.singleton(selectedTopic)).all().get();
-            appendToLog("成功删除 Topic: " + selectedTopic);
+            Logger.log("成功删除 Topic: " + selectedTopic);
             refreshTopicsListAndComboBox();
         } catch (ExecutionException | InterruptedException e) {
-            appendToLog("删除 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            Logger.log("删除 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
     }
 
-    private void appendToLog(String message) {
-        Platform.runLater(() -> {
-            logArea.appendText(message + "\n");
-            logArea.setScrollTop(Double.MAX_VALUE);
-        });
-    }
-
     public void cleanup() {
-        appendToLog("正在关闭应用程序...");
+        Logger.log("正在关闭应用程序...");
         activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
 
         // 关闭所有自动发送任务
         if (!autoSendExecutors.isEmpty()) {
-            appendToLog("正在关闭所有自动发送任务...");
+            Logger.log("正在关闭所有自动发送任务...");
             autoSendExecutors.values().forEach(executor -> {
                 executor.shutdown();
                 try {
@@ -676,11 +669,11 @@ public class MainController implements Initializable {
         }
         if (producer != null) {
             producer.close();
-            appendToLog("生产者已关闭。");
+            Logger.log("生产者已关闭。");
         }
         if (adminClient != null) {
             adminClient.close(Duration.ofSeconds(10));
         }
-        appendToLog("所有资源已释放。");
+        Logger.log("所有资源已释放。");
     }
 }
