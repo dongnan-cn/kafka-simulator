@@ -113,6 +113,8 @@ public class MainController implements Initializable {
         // 初始状态，连接按钮可用，断开按钮不可用
         connectButton.setDisable(false);
         disconnectButton.setDisable(true);
+        startAutoSendButton.setDisable(true);
+        stopAutoSendButton.setDisable(true);
         autoCommitChoiceBox.getItems().addAll("true", "false");
         autoCommitChoiceBox.setValue("true");
         dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON"));
@@ -128,14 +130,20 @@ public class MainController implements Initializable {
             }
         });
         Logger.getInstance().initialize(logArea);
-        initializeProducer();
+        // initializeProducer();
     }
 
     @FXML
     private void onStartAutoSendButtonClick() {
         String topic = producerTopicComboBox.getValue();
         if (producer == null || topic == null || topic.isEmpty()) {
+
             Logger.log("错误: 请先连接到 Kafka 并选择一个 Topic。");
+            if (producer == null) {
+                Logger.log("错误: producer is null");
+            } else {
+                Logger.log("错误: topic is " + topic);
+            }
             return;
         }
 
@@ -275,9 +283,14 @@ public class MainController implements Initializable {
         batchSizeField.setDisable(disable);
         lingerMsField.setDisable(disable);
         onSendButtonClick.setDisable(disable);
-
-        // 禁用消费者TabPane，因为它里面的内容现在是动态管理的
         consumerTabPane.setDisable(disable);
+
+        messagesPerSecondField.setDisable(disable);
+
+        dataTypeChoiceBox.setDisable(disable);
+        sentCountLabel.setDisable(disable);
+        keyLengthField.setDisable(disable);
+        jsonFieldsCountField.setDisable(disable);
     }
 
     @FXML
@@ -311,12 +324,16 @@ public class MainController implements Initializable {
             Platform.runLater(() -> {
                 Logger.log("成功连接到 Kafka 集群！");
                 try {
+                    if (producer == null) {
+                        initializeProducer();
+                    }
                     displayClusterMetadata();
                     refreshTopicsListAndComboBox();
                     // 连接成功后，启用所有UI控件并切换按钮状态
                     setAllControlsDisable(false);
                     connectButton.setDisable(true);
                     disconnectButton.setDisable(false);
+                    startAutoSendButton.setDisable(false);
                 } catch (ExecutionException | InterruptedException e) {
                     Logger.log("获取集群元数据失败: " + e.getMessage());
                     setAllControlsDisable(true);
@@ -348,17 +365,40 @@ public class MainController implements Initializable {
     protected void onDisconnectButtonClick() {
         if (adminClient != null) {
             Logger.log("正在断开与 Kafka 集群的连接...");
+            // 1. 安全地停止所有自动发送任务
+            if (!autoSendExecutors.isEmpty()) {
+                autoSendExecutors.values().forEach(executor -> {
+                    executor.shutdownNow(); // 使用 shutdownNow 立即停止
+                });
+                autoSendExecutors.clear();
+                Logger.log("所有自动发送任务已停止。");
+            }
+
+            // 2. 将消息计数器清零并更新UI
+            sentCounts.clear();
+            Platform.runLater(() -> sentCountLabel.setText("已发送: 0"));
             // 停止所有消费者组
             activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
             activeConsumerGroups.clear();
 
-            adminClient.close(Duration.ofSeconds(10));
-            adminClient = null;
+            if (producer != null) {
+                producer.close(Duration.ofSeconds(5));
+                producer = null;
+                Logger.log("生产者已关闭。");
+            }
+            if (adminClient != null) {
+                adminClient.close(Duration.ofSeconds(5));
+                adminClient = null;
+            }
+
             Logger.log("已成功断开连接。");
             // 断开后，禁用所有控件并切换按钮状态
             setAllControlsDisable(true);
+            consumerTabPane.getTabs().remove(1, consumerTabPane.getTabs().size());
             connectButton.setDisable(false);
             disconnectButton.setDisable(true);
+            startAutoSendButton.setDisable(true);
+            stopAutoSendButton.setDisable(true);
         } else {
             Logger.log("当前未连接到 Kafka 集群。");
         }
