@@ -60,6 +60,7 @@ public class ConsumerGroupUIManager {
         Tab createNewTab = consumerTabPane.getTabs().get(0);
         TextField groupIdField = (TextField) createNewTab.getContent().lookup("#consumerGroupIdField");
         VBox topicContainer = (VBox) createNewTab.getContent().lookup("#topicCheckBoxContainer");
+        @SuppressWarnings("unchecked")
         ChoiceBox<String> autoCommitBox = (ChoiceBox<String>) createNewTab.getContent().lookup("#autoCommitChoiceBox");
 
         String groupId = groupIdField.getText();
