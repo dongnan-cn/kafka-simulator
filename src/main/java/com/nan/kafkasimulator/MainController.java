@@ -5,7 +5,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import com.nan.kafkasimulator.manager.KafkaConnectionManager;
-import com.nan.kafkasimulator.manager.TopicManager;
 import com.nan.kafkasimulator.manager.MessageProducerManager;
 import com.nan.kafkasimulator.manager.ConsumerGroupUIManager;
 import com.nan.kafkasimulator.utils.Logger;
@@ -19,6 +18,10 @@ public class MainController implements Initializable {
 
     @FXML
     private TopicManagementController topicManagementController;
+    // @FXML
+    // private ProducerController producerController;
+
+
     
     @FXML
     private TextField bootstrapServersField;
@@ -71,7 +74,6 @@ public class MainController implements Initializable {
 
     // 管理器类
     private KafkaConnectionManager connectionManager;
-    private TopicManager topicManager;
     private MessageProducerManager messageProducerManager;
     private ConsumerGroupUIManager consumerGroupUIManager;
 
@@ -114,7 +116,6 @@ public class MainController implements Initializable {
                 this::onConnectionStateChanged);
 
         // 这些将在连接成功后初始化
-        topicManager = null;
         messageProducerManager = null;
         consumerGroupUIManager = null;
     }
@@ -128,14 +129,9 @@ public class MainController implements Initializable {
         javafx.application.Platform.runLater(() -> {
             if (isConnected) {
                 // 连接成功后初始化其他管理器
-                topicManager = new TopicManager(
-                        connectionManager.getAdminClient(),
-                        topicManagementController.getTopicsListView(),
-                        producerTopicComboBox,
-                        this::onTopicsUpdated);
-
-                // 将TopicManager实例传递给TopicManagementController
-                topicManagementController.setTopicManager(topicManager);
+                topicManagementController.setAdminClient(connectionManager.getAdminClient());
+                topicManagementController.setProducerTopicComboBox(producerTopicComboBox);
+                topicManagementController.setOnTopicsUpdated(this::onTopicsUpdated);
 
                 messageProducerManager = new MessageProducerManager(
                         connectionManager.getProducer(),
@@ -161,7 +157,7 @@ public class MainController implements Initializable {
                 consumerGroupUIManager.setAdminClient(connectionManager.getAdminClient());
 
                 // 连接成功后自动刷新topic列表
-                topicManager.refreshTopicsList();
+                topicManagementController.refreshTopicsList();
 
                 // 更新UI状态
                 setAllControlsDisable(false);
@@ -191,7 +187,7 @@ public class MainController implements Initializable {
     }
 
     private void setAllControlsDisable(boolean disable) {
-        // Topic相关控件现在由TopicManagementController管理，不再在这里控制
+        topicManagementController.setAllControlsDisable(disable);
         producerTopicComboBox.setDisable(disable);
         producerKeyField.setDisable(disable);
         producerValueArea.setDisable(disable);
