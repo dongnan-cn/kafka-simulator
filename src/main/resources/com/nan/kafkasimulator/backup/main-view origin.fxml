@@ -32,7 +32,48 @@
             <Separator prefWidth="200.0" />
             <SplitPane dividerPositions="0.45" VBox.vgrow="ALWAYS">
                <items>
-                  <fx:include fx:id="topicManagement" source="fxml/topic-management.fxml"/>
+                  <VBox spacing="10.0">
+                     <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </padding>
+                     <children>
+                        <Label text="Topic 管理">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <Label text="创建新 Topic">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="newTopicNameField" promptText="Topic 名称" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label text="分区数:" />
+                              <TextField fx:id="numPartitionsField" prefWidth="50.0" text="1" />
+                              <Label text="副本因子:" />
+                              <TextField fx:id="replicationFactorField" prefWidth="50.0" text="1" />
+                           </children>
+                        </HBox>
+                        <Button fx:id="onCreateTopicButtonClick" maxWidth="1.7976931348623157E308"
+                           onAction="#onCreateTopicButtonClick" text="创建 Topic" />
+                        <Label text="Topic 列表">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Button fx:id="onRefreshTopicsButtonClick"
+                                 onAction="#onRefreshTopicsButtonClick" text="刷新" />
+                              <Button fx:id="onDeleteTopicButtonClick"
+                                 onAction="#onDeleteTopicButtonClick" text="删除选中 Topic" />
+                           </children>
+                        </HBox>
+                        <ListView fx:id="topicsListView" VBox.vgrow="ALWAYS" />
+                     </children>
+                  </VBox>
                   <VBox spacing="10.0">
                      <padding>
                         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

@@ -18,6 +18,9 @@ import java.util.ResourceBundle;
 public class MainController implements Initializable {
 
     @FXML
+    private TopicManagementController topicManagementController;
+    
+    @FXML
     private TextField bootstrapServersField;
     @FXML
     private Button connectButton;
@@ -25,14 +28,7 @@ public class MainController implements Initializable {
     private Button disconnectButton;
     @FXML
     private TextArea logArea;
-    @FXML
-    private TextField newTopicNameField;
-    @FXML
-    private TextField numPartitionsField;
-    @FXML
-    private TextField replicationFactorField;
-    @FXML
-    private ListView<String> topicsListView;
+
     @FXML
     private ComboBox<String> producerTopicComboBox;
     @FXML
@@ -49,12 +45,7 @@ public class MainController implements Initializable {
     private TextArea consumerMessagesArea; // 在FXML中动态添加，这里保留以便于在启动时引用
     @FXML
     private TextArea partitionAssignmentArea; // 在FXML中动态添加，这里保留以便于在启动时引用
-    @FXML
-    private Button onCreateTopicButtonClick;
-    @FXML
-    private Button onRefreshTopicsButtonClick;
-    @FXML
-    private Button onDeleteTopicButtonClick;
+
     @FXML
     private Button onSendButtonClick;
     @FXML
@@ -119,9 +110,8 @@ public class MainController implements Initializable {
 
         // 初始化管理器类
         connectionManager = new KafkaConnectionManager(
-            bootstrapServersField.getText(), 
-            this::onConnectionStateChanged
-        );
+                bootstrapServersField.getText(),
+                this::onConnectionStateChanged);
 
         // 这些将在连接成功后初始化
         topicManager = null;
@@ -131,6 +121,7 @@ public class MainController implements Initializable {
 
     /**
      * 连接状态变化时的回调函数
+     * 
      * @param isConnected 是否已连接
      */
     private void onConnectionStateChanged(boolean isConnected) {
@@ -138,33 +129,33 @@ public class MainController implements Initializable {
             if (isConnected) {
                 // 连接成功后初始化其他管理器
                 topicManager = new TopicManager(
-                    connectionManager.getAdminClient(),
-                    topicsListView,
-                    producerTopicComboBox,
-                    this::onTopicsUpdated
-                );
+                        connectionManager.getAdminClient(),
+                        topicManagementController.getTopicsListView(),
+                        producerTopicComboBox,
+                        this::onTopicsUpdated);
+
+                // 将TopicManager实例传递给TopicManagementController
+                topicManagementController.setTopicManager(topicManager);
 
                 messageProducerManager = new MessageProducerManager(
-                    connectionManager.getProducer(),
-                    producerTopicComboBox,
-                    producerKeyField,
-                    producerValueArea,
-                    messagesPerSecondField,
-                    dataTypeChoiceBox,
-                    keyLengthField,
-                    jsonFieldsCountField,
-                    startAutoSendButton,
-                    stopAutoSendButton,
-                    onSendButtonClick,
-                    sentCountLabel
-                );
+                        connectionManager.getProducer(),
+                        producerTopicComboBox,
+                        producerKeyField,
+                        producerValueArea,
+                        messagesPerSecondField,
+                        dataTypeChoiceBox,
+                        keyLengthField,
+                        jsonFieldsCountField,
+                        startAutoSendButton,
+                        stopAutoSendButton,
+                        onSendButtonClick,
+                        sentCountLabel);
 
                 consumerGroupUIManager = new ConsumerGroupUIManager(
-                    consumerTabPane,
-                    bootstrapServersField.getText(),
-                    activeConsumerGroups,
-                    consumerGroupTabs
-                );
+                        consumerTabPane,
+                        bootstrapServersField.getText(),
+                        activeConsumerGroups,
+                        consumerGroupTabs);
 
                 // 设置adminClient到ConsumerGroupUIManager
                 consumerGroupUIManager.setAdminClient(connectionManager.getAdminClient());
@@ -190,6 +181,7 @@ public class MainController implements Initializable {
 
     /**
      * Topic列表更新时的回调函数
+     * 
      * @param topicNames 更新后的Topic列表
      */
     private void onTopicsUpdated(java.util.List<String> topicNames) {
@@ -199,13 +191,7 @@ public class MainController implements Initializable {
     }
 
     private void setAllControlsDisable(boolean disable) {
-        newTopicNameField.setDisable(disable);
-        numPartitionsField.setDisable(disable);
-        replicationFactorField.setDisable(disable);
-        onCreateTopicButtonClick.setDisable(disable);
-        onRefreshTopicsButtonClick.setDisable(disable);
-        onDeleteTopicButtonClick.setDisable(disable);
-        topicsListView.setDisable(disable);
+        // Topic相关控件现在由TopicManagementController管理，不再在这里控制
         producerTopicComboBox.setDisable(disable);
         producerKeyField.setDisable(disable);
         producerValueArea.setDisable(disable);
@@ -242,13 +228,6 @@ public class MainController implements Initializable {
     }
 
     @FXML
-    protected void onRefreshTopicsButtonClick() {
-        if (topicManager != null) {
-            topicManager.refreshTopicsList();
-        }
-    }
-
-    @FXML
     protected void onSendButtonClick() {
         if (messageProducerManager != null) {
             messageProducerManager.sendMessage();
@@ -277,33 +256,12 @@ public class MainController implements Initializable {
     }
 
     @FXML
-    protected void onCreateTopicButtonClick() {
-        if (topicManager != null) {
-            try {
-                int numPartitions = Integer.parseInt(numPartitionsField.getText());
-                short replicationFactor = Short.parseShort(replicationFactorField.getText());
-                topicManager.createTopic(newTopicNameField.getText(), numPartitions, replicationFactor);
-            } catch (NumberFormatException e) {
-                Logger.log("错误: 分区数和副本因子必须是有效的数字。");
-            }
-        }
-    }
-
-    @FXML
-    protected void onDeleteTopicButtonClick() {
-        if (topicManager != null) {
-            topicManager.deleteTopic();
-        }
-    }
-
-    @FXML
     protected void onProducerConfigChange() {
         if (connectionManager != null && connectionManager.getProducer() != null) {
             connectionManager.updateProducerConfig(
-                acksChoiceBox.getValue(),
-                batchSizeField.getText(),
-                lingerMsField.getText()
-            );
+                    acksChoiceBox.getValue(),
+                    batchSizeField.getText(),
+                    lingerMsField.getText());
         }
     }
 
