@@ -80,20 +80,27 @@
 
 ### 第五阶段：高级生产者功能
 
-- [ ] UI 布局更新：在生产者面板中添加"自动发送设置"区域，包括以下控件：
-  - [ ] 一个用于输入每秒消息数的文本框。
-  - [ ] 一个用于选择数据类型的下拉框（字符串或 JSON）。
-  - [ ] 一个用于输入随机 key 长度的文本框（当选择随机 key 时启用）。
-  - [ ] 一个用于输入随机 JSON 字段数量的文本框（当选择 JSON 类型时启用）。
-  - [ ] 一个用于显示已发送消息总数的标签。
-  - [ ] "开始自动发送"和"停止自动发送"按钮。
-- [ ] 后端逻辑实现：
-  - [ ] 在 MainController.java 中添加 Map<String, ScheduledExecutorService> 来管理每个 Topic 的独立自动发送任务。
-  - [ ] 实现 onStartAutoSendButtonClick() 方法，该方法根据 UI 配置启动定时任务。
-  - [ ] 实现 onStopAutoSendButtonClick() 方法，该方法安全地关闭对应 Topic 的定时任务。
-  - [ ] 实现辅助方法以生成随机字符串和 JSON 数据。
-  - [ ] 确保在 UI 线程上更新消息计数器和日志。
+- [x] UI 布局更新：在生产者面板中添加"自动发送设置"区域，包括以下控件：
+  - [x] 一个用于输入每秒消息数的文本框。
+  - [x] 一个用于选择数据类型的下拉框（字符串或 JSON）。
+  - [x] 一个用于输入随机 key 长度的文本框（当选择随机 key 时启用）。
+  - [x] 一个用于输入随机 JSON 字段数量的文本框（当选择 JSON 类型时启用）。
+  - [x] 一个用于显示已发送消息总数的标签。
+  - [x] "开始自动发送"和"停止自动发送"按钮。
+- [x] 后端逻辑实现：
+  - [x] 在 MainController.java 中添加 Map<String, ScheduledExecutorService> 来管理每个 Topic 的独立自动发送任务。
+  - [x] 实现 onStartAutoSendButtonClick() 方法，该方法根据 UI 配置启动定时任务。
+  - [x] 实现 onStopAutoSendButtonClick() 方法，该方法安全地关闭对应 Topic 的定时任务。
+  - [x] 实现辅助方法以生成随机字符串和 JSON 数据。
+  - [x] 确保在 UI 线程上更新消息计数器和日志。
 
+### 第六阶段：消费者组模块重构
+
+- [x] 创建独立的消费者组管理FXML文件（consumer-group-management.fxml）。
+- [x] 实现ConsumerController类，将消费者组管理逻辑从MainController中分离出来。
+- [x] 更新ControllerRegistry，添加对ConsumerController的支持。
+- [x] 修改MainController，移除ConsumerGroupUIManager相关代码，添加对ConsumerController的支持。
+- [x] 修复main-view.fxml中的fx:id命名冲突问题。
 ---
 
 ## 备注
