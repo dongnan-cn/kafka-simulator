@@ -4,7 +4,6 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import com.nan.kafkasimulator.manager.KafkaConnectionManager;
 import com.nan.kafkasimulator.manager.MessageProducerManager;
 import com.nan.kafkasimulator.manager.ConsumerGroupUIManager;
 import com.nan.kafkasimulator.utils.Logger;
@@ -18,17 +17,14 @@ public class MainController implements Initializable {
 
     @FXML
     private TopicManagementController topicManagementController;
+    @FXML
+    private ConnectionManagerController connectionManagementController;
+
     // @FXML
     // private ProducerController producerController;
 
 
-    
-    @FXML
-    private TextField bootstrapServersField;
-    @FXML
-    private Button connectButton;
-    @FXML
-    private Button disconnectButton;
+
     @FXML
     private TextArea logArea;
 
@@ -73,7 +69,7 @@ public class MainController implements Initializable {
     private ChoiceBox<String> autoCommitChoiceBox;
 
     // 管理器类
-    private KafkaConnectionManager connectionManager;
+    // private KafkaConnectionManager connectionManager;
     private MessageProducerManager messageProducerManager;
     private ConsumerGroupUIManager consumerGroupUIManager;
 
@@ -83,15 +79,16 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        bootstrapServersField.setText("localhost:19092");
+        ControllerRegistry.setConnectionManagerController(connectionManagementController);
+        ControllerRegistry.setTopicManagementController(topicManagementController);
 
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
         setAllControlsDisable(true);
+        
         // 初始状态，连接按钮可用，断开按钮不可用
-        connectButton.setDisable(false);
-        disconnectButton.setDisable(true);
+        connectionManagementController.setStatusConnected(false);
         startAutoSendButton.setDisable(true);
         stopAutoSendButton.setDisable(true);
         autoCommitChoiceBox.getItems().addAll("true", "false");
@@ -111,9 +108,10 @@ public class MainController implements Initializable {
         Logger.getInstance().initialize(logArea);
 
         // 初始化管理器类
-        connectionManager = new KafkaConnectionManager(
-                bootstrapServersField.getText(),
-                this::onConnectionStateChanged);
+        connectionManagementController.setOnConnectionStateChanged(this::onConnectionStateChanged);
+        // connectionManager = new KafkaConnectionManager(
+        // bootstrapServersField.getText(),
+        // this::onConnectionStateChanged);
 
         // 这些将在连接成功后初始化
         messageProducerManager = null;
@@ -129,12 +127,12 @@ public class MainController implements Initializable {
         javafx.application.Platform.runLater(() -> {
             if (isConnected) {
                 // 连接成功后初始化其他管理器
-                topicManagementController.setAdminClient(connectionManager.getAdminClient());
+                topicManagementController.setAdminClient(connectionManagementController.getAdminClient());
                 topicManagementController.setProducerTopicComboBox(producerTopicComboBox);
                 topicManagementController.setOnTopicsUpdated(this::onTopicsUpdated);
 
                 messageProducerManager = new MessageProducerManager(
-                        connectionManager.getProducer(),
+                        connectionManagementController.getProducer(),
                         producerTopicComboBox,
                         producerKeyField,
                         producerValueArea,
@@ -149,26 +147,26 @@ public class MainController implements Initializable {
 
                 consumerGroupUIManager = new ConsumerGroupUIManager(
                         consumerTabPane,
-                        bootstrapServersField.getText(),
+                        connectionManagementController.getBootstrapServers(),
                         activeConsumerGroups,
                         consumerGroupTabs);
 
+                connectionManagementController.setMessageProducerManager(messageProducerManager);
+                connectionManagementController.setConsumerGroupUIManager(consumerGroupUIManager);
                 // 设置adminClient到ConsumerGroupUIManager
-                consumerGroupUIManager.setAdminClient(connectionManager.getAdminClient());
+                consumerGroupUIManager.setAdminClient(connectionManagementController.getAdminClient());
 
                 // 连接成功后自动刷新topic列表
                 topicManagementController.refreshTopicsList();
 
                 // 更新UI状态
                 setAllControlsDisable(false);
-                connectButton.setDisable(true);
-                disconnectButton.setDisable(false);
+                connectionManagementController.setStatusConnected(true);
                 startAutoSendButton.setDisable(false);
             } else {
                 // 连接失败或断开连接
                 setAllControlsDisable(true);
-                connectButton.setDisable(false);
-                disconnectButton.setDisable(true);
+                connectionManagementController.setStatusConnected(false);
                 startAutoSendButton.setDisable(true);
                 stopAutoSendButton.setDisable(true);
             }
@@ -206,24 +204,6 @@ public class MainController implements Initializable {
     }
 
     @FXML
-    protected void onConnectButtonClick() {
-        connectionManager.connect();
-    }
-
-    @FXML
-    protected void onDisconnectButtonClick() {
-        if (messageProducerManager != null) {
-            messageProducerManager.cleanup();
-        }
-
-        if (consumerGroupUIManager != null) {
-            consumerGroupUIManager.cleanup();
-        }
-
-        connectionManager.disconnect();
-    }
-
-    @FXML
     protected void onSendButtonClick() {
         if (messageProducerManager != null) {
             messageProducerManager.sendMessage();
@@ -253,8 +233,8 @@ public class MainController implements Initializable {
 
     @FXML
     protected void onProducerConfigChange() {
-        if (connectionManager != null && connectionManager.getProducer() != null) {
-            connectionManager.updateProducerConfig(
+        if (connectionManagementController != null && connectionManagementController.getProducer() != null) {
+            connectionManagementController.updateProducerConfig(
                     acksChoiceBox.getValue(),
                     batchSizeField.getText(),
                     lingerMsField.getText());
@@ -272,8 +252,8 @@ public class MainController implements Initializable {
             consumerGroupUIManager.cleanup();
         }
 
-        if (connectionManager != null) {
-            connectionManager.disconnect();
+        if (connectionManagementController != null) {
+            connectionManagementController.disconnect();
         }
 
         Logger.log("所有资源已释放。");

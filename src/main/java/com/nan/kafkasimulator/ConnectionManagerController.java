@@ -1,40 +1,117 @@
-package com.nan.kafkasimulator.manager;
+package com.nan.kafkasimulator;
 
-import javafx.concurrent.Task;
-import javafx.scene.control.Alert;
+import static com.nan.kafkasimulator.utils.Logger.log;
+
+import java.net.URL;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import com.nan.kafkasimulator.manager.ConsumerGroupUIManager;
+import com.nan.kafkasimulator.manager.MessageProducerManager;
 
-import static com.nan.kafkasimulator.utils.Logger.log;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 
-/**
- * 负责管理Kafka连接的类，包括连接、断开连接和初始化生产者等操作
- */
-public class KafkaConnectionManager {
+public class ConnectionManagerController implements Initializable {
+
+    @FXML
+    private TextField bootstrapServersField;
+
+    @FXML
+    private Button connectButton;
+    @FXML
+    private Button disconnectButton;
+
     private AdminClient adminClient;
     private KafkaProducer<String, String> producer;
-    private final String bootstrapServers;
-    private final Consumer<Boolean> onConnectionStateChanged;
+    private String bootstrapServers;
+    private Consumer<Boolean> onConnectionStateChanged;
 
-    public KafkaConnectionManager(String bootstrapServers, Consumer<Boolean> onConnectionStateChanged) {
+    private MessageProducerManager messageProducerManager;
+    private ConsumerGroupUIManager consumerGroupUIManager;
+
+    @Override
+    public void initialize(URL arg0, ResourceBundle arg1) {
+        bootstrapServersField.setText("localhost:19092");
+        bootstrapServers = bootstrapServersField.getText();
+    }
+
+    public void setMessageProducerManager(MessageProducerManager messageProducerManager) {
+        this.messageProducerManager = messageProducerManager;
+    }
+
+    public void setConsumerGroupUIManager(ConsumerGroupUIManager consumerGroupUIManager) {
+        this.consumerGroupUIManager = consumerGroupUIManager;
+    }
+
+    public void setBootstrapServers(String bootstrapServers) {
         this.bootstrapServers = bootstrapServers;
+    }
+
+    
+
+    public String getBootstrapServers() {
+        return bootstrapServers;
+    }
+
+    public void setOnConnectionStateChanged(Consumer<Boolean> onConnectionStateChanged) {
         this.onConnectionStateChanged = onConnectionStateChanged;
     }
 
-    public AdminClient getAdminClient() {
-        return adminClient;
+    public void setStatusConnected(boolean connected) {
+        connectButton.setDisable(connected);
+        disconnectButton.setDisable(!connected);
+    }
+
+    @FXML
+    protected void onConnectButtonClick() {
+        connect();
+    }
+
+    private void displayClusterMetadata() throws ExecutionException, InterruptedException {
+        if (adminClient == null)
+            return;
+        org.apache.kafka.clients.admin.DescribeClusterResult describeClusterResult = adminClient.describeCluster();
+        java.util.Collection<org.apache.kafka.common.Node> nodes = describeClusterResult.nodes().get();
+
+        log("\n--- Broker 信息 ---");
+        for (org.apache.kafka.common.Node node : nodes) {
+            log("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
+        }
+    }
+
+    @FXML
+    protected void onDisconnectButtonClick() {
+        if (messageProducerManager != null) {
+            messageProducerManager.cleanup();
+        }
+
+        if (consumerGroupUIManager != null) {
+            consumerGroupUIManager.cleanup();
+        }
+
+        disconnect();
     }
 
     public KafkaProducer<String, String> getProducer() {
         return producer;
+    }
+
+    public AdminClient getAdminClient() {
+        return adminClient;
     }
 
     public void connect() {
@@ -88,39 +165,6 @@ public class KafkaConnectionManager {
         new Thread(connectTask).start();
     }
 
-    public void disconnect() {
-        if (adminClient != null) {
-            log("正在断开与 Kafka 集群的连接...");
-
-            if (producer != null) {
-                producer.close(java.time.Duration.ofSeconds(5));
-                producer = null;
-                log("生产者已关闭。");
-            }
-            if (adminClient != null) {
-                adminClient.close(java.time.Duration.ofSeconds(5));
-                adminClient = null;
-            }
-
-            log("已成功断开连接。");
-            onConnectionStateChanged.accept(false);
-        } else {
-            log("当前未连接到 Kafka 集群。");
-        }
-    }
-
-    private void displayClusterMetadata() throws ExecutionException, InterruptedException {
-        if (adminClient == null)
-            return;
-        org.apache.kafka.clients.admin.DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-        java.util.Collection<org.apache.kafka.common.Node> nodes = describeClusterResult.nodes().get();
-
-        log("\n--- Broker 信息 ---");
-        for (org.apache.kafka.common.Node node : nodes) {
-            log("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
-        }
-    }
-
     private void initializeProducer() {
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -164,4 +208,26 @@ public class KafkaConnectionManager {
         alert.setContentText(content);
         alert.showAndWait();
     }
+
+    public void disconnect() {
+        if (adminClient != null) {
+            log("正在断开与 Kafka 集群的连接...");
+
+            if (producer != null) {
+                producer.close(java.time.Duration.ofSeconds(5));
+                producer = null;
+                log("生产者已关闭。");
+            }
+            if (adminClient != null) {
+                adminClient.close(java.time.Duration.ofSeconds(5));
+                adminClient = null;
+            }
+
+            log("已成功断开连接。");
+            onConnectionStateChanged.accept(false);
+        } else {
+            log("当前未连接到 Kafka 集群。");
+        }
+    }
+
 }
