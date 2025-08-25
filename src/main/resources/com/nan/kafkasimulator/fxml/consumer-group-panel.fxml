@@ -14,7 +14,7 @@
         <Label text="消费者组: " style="-fx-font-weight: bold;"/>
         <Label fx:id="consumerGroupIdLabel"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <ToggleButton fx:id="showPartitionAssignmentToggle" text="显示分区分配"/>
+        <Button fx:id="showPartitionAssignmentButton" text="查看分区分配"/>
     </HBox>
 
     <!-- 消息接收区域 -->
@@ -27,15 +27,6 @@
         </ScrollPane>
     </VBox>
 
-    <!-- 分区分配信息区域 -->
-    <VBox fx:id="partitionAssignmentArea" visible="false">
-        <Label text="分区分配:" style="-fx-font-weight: bold;"/>
-        <ScrollPane fitToWidth="true">
-            <content>
-                <TextArea fx:id="partitionAssignmentTextArea" editable="false" wrapText="true"/>
-            </content>
-        </ScrollPane>
-    </VBox>
 
     <!-- 操作按钮区域 -->
     <HBox spacing="10.0" alignment="CENTER_RIGHT">

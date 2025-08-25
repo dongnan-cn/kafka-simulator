@@ -1,10 +1,7 @@
 package com.nan.kafkasimulator;
 
-import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.scene.control.TextArea;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DescribeConsumerGroupsResult;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.MemberDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -13,14 +10,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import static com.nan.kafkasimulator.utils.Logger.log;
@@ -133,62 +127,37 @@ public class ConsumerGroupManager {
         log("所有消费者实例停止指令已发送。");
     }
 
-    public synchronized void showPartitionAssignments(AdminClient adminClient) {
-        Platform.runLater(() -> partitionsArea.clear());
+    public void showPartitionAssignments(AdminClient adminClient, TextArea partitionAssignmentTextArea) {
+        try {
+            // 获取消费者组的分区分配信息
+            Map<String, org.apache.kafka.clients.admin.ConsumerGroupDescription> groupDescriptions = adminClient
+                    .describeConsumerGroups(Collections.singletonList(groupId)).all().get();
 
-        Task<Void> assignmentTask = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                try {
-                    DescribeConsumerGroupsResult result = adminClient
-                            .describeConsumerGroups(Collections.singleton(groupId));
-                    ConsumerGroupDescription description = result.describedGroups().get(groupId).get(10,
-                            TimeUnit.SECONDS);
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("消费者组 '").append(groupId).append("' 的分区分配:\n");
-                    if (description.members() == null || description.members().isEmpty()) {
-                        sb.append("当前消费者组没有活跃成员或分配的分区。");
-                    } else {
-                        for (MemberDescription member : description.members()) {
-                            String memberId = member.consumerId();
-                            if (memberId == null || memberId.isEmpty()) {
-                                memberId = member.clientId();
-                            }
-
-                            sb.append("-> 消费者 ").append(memberId).append(":\n");
-                            List<String> assignedPartitions = member.assignment().topicPartitions().stream()
-                                    .map(tp -> tp.topic() + "-" + tp.partition())
-                                    .sorted()
-                                    .collect(Collectors.toList());
-
-                            if (assignedPartitions.isEmpty()) {
-                                sb.append("   - 未分配任何分区。\n");
-                            } else {
-                                assignedPartitions.forEach(p -> sb.append("   - ").append(p).append("\n"));
-                            }
-                        }
-                    }
-
-                    Platform.runLater(() -> partitionsArea.setText(sb.toString()));
-                } catch (ExecutionException e) {
-                    throw new RuntimeException("获取分区分配失败: ", e.getCause());
-                }
-                return null;
+            ConsumerGroupDescription groupDescription = groupDescriptions.get(groupId);
+            if (groupDescription == null) {
+                partitionAssignmentTextArea.setText("未找到消费者组 " + groupId + " 的信息");
+                return;
             }
-        };
 
-        assignmentTask.setOnFailed(event -> {
-            Throwable e = assignmentTask.getException();
-            Platform.runLater(() -> {
-                log("获取分区分配失败: " + e.getMessage());
-                partitionsArea.setText("获取分区分配失败: " + e.getMessage());
-            });
-        });
-        if (adminExecutor == null) {
-            adminExecutor = Executors.newFixedThreadPool(1);
+            // 构建分区分配信息字符串
+            StringBuilder assignmentInfo = new StringBuilder();
+            assignmentInfo.append("消费者组: ").append(groupId).append("\n");
+            assignmentInfo.append("状态: ").append(groupDescription.state()).append("\n");
+            assignmentInfo.append("协调器: ").append(groupDescription.coordinator()).append("\n\n");
+
+            assignmentInfo.append("成员分配信息:\n");
+            for (MemberDescription member : groupDescription.members()) {
+                assignmentInfo.append("\n成员ID: ").append(member.consumerId()).append("\n");
+                assignmentInfo.append("客户端ID: ").append(member.clientId()).append("\n");
+                assignmentInfo.append("主机: ").append(member.host()).append("\n");
+                assignmentInfo.append("分配的分区: ").append(member.assignment().topicPartitions()).append("\n");
+            }
+
+            // 将信息显示在指定的TextArea中
+            partitionAssignmentTextArea.setText(assignmentInfo.toString());
+        } catch (Exception e) {
+            partitionAssignmentTextArea.setText("获取分区分配信息时出错: " + e.getMessage());
         }
-        adminExecutor.submit(assignmentTask);
     }
 
     public boolean isRunning() {

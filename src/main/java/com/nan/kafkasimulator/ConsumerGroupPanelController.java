@@ -23,15 +23,12 @@ public class ConsumerGroupPanelController implements Initializable {
     @FXML
     private Label consumerGroupIdLabel;
     @FXML
-    private ToggleButton showPartitionAssignmentToggle;
+    private Button showPartitionAssignmentButton;
     @FXML
     private VBox messageArea;
     @FXML
     private TextArea messageTextArea;
-    @FXML
-    private VBox partitionAssignmentArea;
-    @FXML
-    private TextArea partitionAssignmentTextArea;
+
     @FXML
     private Button addConsumerButton;
     @FXML
@@ -65,7 +62,7 @@ public class ConsumerGroupPanelController implements Initializable {
             // 初始化消费者组管理器
             controller.consumerGroupManager = new ConsumerGroupManager(
                     groupId, topics, autoCommit, bootstrapServers, 
-                    controller.messageTextArea, controller.partitionAssignmentTextArea);
+                    controller.messageTextArea, null);
 
             // 设置消费者组ID
             controller.consumerGroupIdLabel.setText(groupId);
@@ -85,12 +82,6 @@ public class ConsumerGroupPanelController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 绑定开关状态和分区分配区域的可见性
-        partitionAssignmentArea.visibleProperty().bind(showPartitionAssignmentToggle.selectedProperty());
-
-        // 初始状态为隐藏
-        showPartitionAssignmentToggle.setSelected(false);
-
         // 绑定按钮事件
         stopConsumerGroupButton.setOnAction(event -> {
             consumerGroupManager.pauseAll();
@@ -106,11 +97,45 @@ public class ConsumerGroupPanelController implements Initializable {
 
         addConsumerButton.setOnAction(event -> consumerGroupManager.startNewConsumerInstance());
 
-        showPartitionAssignmentToggle.setOnAction(event -> {
-            if (showPartitionAssignmentToggle.isSelected() && adminClient != null) {
-                consumerGroupManager.showPartitionAssignments(adminClient);
+        showPartitionAssignmentButton.setOnAction(event -> {
+            if (adminClient != null) {
+                showPartitionAssignmentDialog();
             }
         });
+    }
+    
+    /**
+     * 显示分区分配对话框
+     */
+    private void showPartitionAssignmentDialog() {
+        try {
+            // 加载分区分配对话框的FXML
+            URL fxmlUrl = getClass().getResource("/com/nan/kafkasimulator/fxml/partition-assignment-dialog.fxml");
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
+            DialogPane dialogPane = loader.load();
+            // 获取控制器
+            PartitionAssignmentDialogController controller = loader.getController();
+            
+            // 设置消费者组ID
+            controller.setConsumerGroupId(consumerGroupIdLabel.getText());
+            
+            // 创建对话框
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setDialogPane(dialogPane);
+            dialog.setTitle("分区分配信息");
+            
+            // 在对话框显示后立即获取分区分配信息
+            dialog.setOnShown(event -> {
+                // 获取分区分配信息并显示
+                consumerGroupManager.showPartitionAssignments(adminClient, controller.getPartitionAssignmentTextArea());
+            });
+            
+            // 显示对话框
+            dialog.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            log("显示分区分配对话框失败: " + e.getMessage());
+        }
     }
 
     /**
