@@ -6,6 +6,7 @@ public class ControllerRegistry {
 
     private static ConnectionManagerController connectionManagerController;
     private static ProducerController producerController;
+    private static ConsumerController consumerController;
 
     public static ProducerController getProducerController() {
         return producerController;
@@ -31,4 +32,11 @@ public class ControllerRegistry {
         ControllerRegistry.connectionManagerController = connectionManagerController;
     }
 
+    public static ConsumerController getConsumerController() {
+        return consumerController;
+    }
+
+    public static void setConsumerController(ConsumerController consumerController) {
+        ControllerRegistry.consumerController = consumerController;
+    }
 }

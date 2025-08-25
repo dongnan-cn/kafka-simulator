@@ -1,37 +1,76 @@
-package com.nan.kafkasimulator.manager;
+package com.nan.kafkasimulator;
 
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import com.nan.kafkasimulator.ConsumerGroupManager;
 
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ResourceBundle;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * 负责管理消费者组UI的类，包括创建消费者组Tab、更新Topic列表等操作
+ * 消费者组管理控制器
  */
-public class ConsumerGroupUIManager {
-    private final TabPane consumerTabPane;
-    private final String bootstrapServers;
-    private final Map<String, ConsumerGroupManager> activeConsumerGroups;
-    private final Map<String, Tab> consumerGroupTabs;
-    private org.apache.kafka.clients.admin.AdminClient adminClient;
+public class ConsumerController implements Initializable {
 
-    public ConsumerGroupUIManager(TabPane consumerTabPane, String bootstrapServers,
-                                Map<String, ConsumerGroupManager> activeConsumerGroups,
-                                Map<String, Tab> consumerGroupTabs) {
-        this.consumerTabPane = consumerTabPane;
-        this.bootstrapServers = bootstrapServers;
-        this.activeConsumerGroups = activeConsumerGroups;
-        this.consumerGroupTabs = consumerGroupTabs;
+    @FXML
+    private TabPane consumerTabPane;
+    @FXML
+    private TextField consumerGroupIdField;
+    @FXML
+    private VBox topicCheckBoxContainer;
+    @FXML
+    private ChoiceBox<String> autoCommitChoiceBox;
+
+    // 用于管理所有消费者组实例的Map
+    private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
+    private final Map<String, Tab> consumerGroupTabs = new HashMap<>();
+
+    private org.apache.kafka.clients.admin.AdminClient adminClient;
+    private String bootstrapServers;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        // 初始化自动提交选项
+        autoCommitChoiceBox.getItems().addAll("true", "false");
+        autoCommitChoiceBox.setValue("true");
+
+        // 注册到ControllerRegistry
+        ControllerRegistry.setConsumerController(this);
     }
 
+    public void setControlsDisable(boolean disable) {
+        consumerTabPane.setDisable(disable);
+    }
+
+    /**
+     * 设置AdminClient
+     * 
+     * @param adminClient Kafka AdminClient
+     */
     public void setAdminClient(org.apache.kafka.clients.admin.AdminClient adminClient) {
         this.adminClient = adminClient;
     }
 
+    /**
+     * 设置Bootstrap服务器地址
+     * 
+     * @param bootstrapServers Kafka服务器地址
+     */
+    public void setBootstrapServers(String bootstrapServers) {
+        this.bootstrapServers = bootstrapServers;
+    }
+
+    /**
+     * 更新所有消费者的Topic列表
+     * 
+     * @param topicNames Topic名称列表
+     */
     public void updateAllConsumerTopics(List<String> topicNames) {
         // 获取"新增消费者组"这个Tab
         Tab createNewTab = consumerTabPane.getTabs().get(0);
@@ -55,6 +94,17 @@ public class ConsumerGroupUIManager {
         });
     }
 
+    /**
+     * 启动消费者组按钮点击事件处理
+     */
+    @FXML
+    private void onStartConsumerButtonClick() {
+        createConsumerGroup();
+    }
+
+    /**
+     * 创建新的消费者组
+     */
     public void createConsumerGroup() {
         // 从"新增消费者组"Tab中获取UI元素
         Tab createNewTab = consumerTabPane.getTabs().get(0);
@@ -69,7 +119,7 @@ public class ConsumerGroupUIManager {
             return;
         }
         if (activeConsumerGroups.containsKey(groupId)) {
-            log("错误: 消费者组 '" + groupId + "' 已存在。");
+            log("错误: 消费组 '" + groupId + "' 已存在。");
             return;
         }
 
@@ -172,6 +222,9 @@ public class ConsumerGroupUIManager {
         });
     }
 
+    /**
+     * 清理资源
+     */
     public void cleanup() {
         // 停止所有消费者组
         activeConsumerGroups.values().forEach(ConsumerGroupManager::stopAll);
@@ -181,5 +234,14 @@ public class ConsumerGroupUIManager {
         if (consumerTabPane.getTabs().size() > 1) {
             consumerTabPane.getTabs().remove(1, consumerTabPane.getTabs().size());
         }
+    }
+
+    /**
+     * 设置所有控件的禁用状态
+     * 
+     * @param disable 是否禁用
+     */
+    public void setAllControlsDisable(boolean disable) {
+        consumerTabPane.setDisable(disable);
     }
 }

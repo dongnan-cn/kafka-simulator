@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import com.nan.kafkasimulator.manager.ConsumerGroupUIManager;
 import com.nan.kafkasimulator.utils.Alerter;
 
 import javafx.concurrent.Task;
@@ -36,16 +35,12 @@ public class ConnectionManagerController implements Initializable {
     private Consumer<Boolean> onConnectionStateChanged;
 
     // private MessageProducerManager messageProducerManager;
-    private ConsumerGroupUIManager consumerGroupUIManager;
+    // private ConsumerGroupUIManager consumerGroupUIManager;
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
         bootstrapServersField.setText("localhost:19092");
         bootstrapServers = bootstrapServersField.getText();
-    }
-
-    public void setConsumerGroupUIManager(ConsumerGroupUIManager consumerGroupUIManager) {
-        this.consumerGroupUIManager = consumerGroupUIManager;
     }
 
     public void setBootstrapServers(String bootstrapServers) {
@@ -85,9 +80,7 @@ public class ConnectionManagerController implements Initializable {
     @FXML
     protected void onDisconnectButtonClick() {
         ControllerRegistry.getProducerController().cleanup();
-        if (consumerGroupUIManager != null) {
-            consumerGroupUIManager.cleanup();
-        }
+        ControllerRegistry.getConsumerController().cleanup();
 
         disconnect();
     }

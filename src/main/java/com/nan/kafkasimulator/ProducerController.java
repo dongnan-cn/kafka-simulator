@@ -189,13 +189,6 @@ public class ProducerController implements Initializable {
         sentCountLabel.setDisable(disable);
         keyLengthField.setDisable(disable);
         jsonFieldsCountField.setDisable(disable);
-        // startAutoSendButton.setDisable(disable);
-        // stopAutoSendButton.setDisable(disable);
-
-        // // 如果不禁用，则根据当前状态设置按钮
-        // if (!disable) {
-        // stopAutoSendButton.setDisable(true);
-        // }
     }
 
     // 清理资源的方法
