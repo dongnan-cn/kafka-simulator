@@ -5,18 +5,20 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<TabPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-    fx:id="consumerTabPane" prefHeight="200.0" prefWidth="200.0"
+<HBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.nan.kafkasimulator.ConsumerController"
-    tabClosingPolicy="UNAVAILABLE" HBox.hgrow="ALWAYS">
-    <tabs>
-        <Tab text="新增消费者组">
-            <content>
-                <VBox spacing="10.0">
-                    <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                    </padding>
-                    <children>
+    spacing="10.0" HBox.hgrow="ALWAYS">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+
+    <!-- 左侧面板 - 消费者组列表和创建区域 -->
+    <VBox spacing="10.0" prefWidth="300.0">
+        <children>
+            <!-- 创建消费者组区域 -->
+            <TitledPane text="新增消费者组" collapsible="false" VBox.vgrow="NEVER">
+                <content>
+                    <VBox spacing="10.0">
                         <Label text="消费者组 ID">
                             <font>
                                 <Font name="System Bold" size="12.0" />
@@ -28,7 +30,7 @@
                                 <Font name="System Bold" size="12.0" />
                             </font>
                         </Label>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+                        <ScrollPane fitToWidth="true" prefHeight="150.0">
                             <content>
                                 <VBox fx:id="topicCheckBoxContainer" spacing="5.0" />
                             </content>
@@ -43,9 +45,34 @@
                         <Button fx:id="onStartConsumerButtonClick"
                             maxWidth="1.7976931348623157E308"
                             onAction="#onStartConsumerButtonClick" text="启动消费者组" />
-                    </children>
-                </VBox>
-            </content>
-        </Tab>
-    </tabs>
-</TabPane>
+                    </VBox>
+                </content>
+            </TitledPane>
+
+            <!-- 消费者组列表区域 -->
+            <TitledPane text="消费者组列表" collapsible="false" VBox.vgrow="ALWAYS">
+                <content>
+                    <VBox spacing="10.0">
+                        <ListView fx:id="consumerGroupListView" VBox.vgrow="ALWAYS" />
+                        <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                            <Button fx:id="removeSelectedButton" text="移除选中" disable="true" />
+                            <Button fx:id="refreshListButton" text="刷新列表" />
+                        </HBox>
+                    </VBox>
+                </content>
+            </TitledPane>
+        </children>
+    </VBox>
+
+    <!-- 右侧面板 - 多面板显示区域 -->
+    <ScrollPane fitToWidth="true" fitToHeight="true" HBox.hgrow="ALWAYS">
+        <content>
+            <TilePane fx:id="consumerGroupsDisplayArea" hgap="10.0" vgap="10.0" 
+                prefColumns="2" prefTileWidth="400.0">
+                <padding>
+                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                </padding>
+            </TilePane>
+        </content>
+    </ScrollPane>
+</HBox>
