@@ -174,8 +174,7 @@ public class ProducerController implements Initializable {
             Alerter.showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
         }
     }
-
-    // 设置控件禁用状态的方法
+    
     public void setControlsDisable(boolean disable) {
         producerTopicComboBox.setDisable(disable);
         producerKeyField.setDisable(disable);
@@ -191,7 +190,6 @@ public class ProducerController implements Initializable {
         jsonFieldsCountField.setDisable(disable);
     }
 
-    // 清理资源的方法
     public void sendMessage() {
         if (getProducer() == null) {
             log("错误: 请先连接到 Kafka 集群。");

@@ -13,9 +13,6 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
-/**
- * 消费者组管理控制器
- */
 public class ConsumerController implements Initializable {
 
     @FXML
@@ -27,7 +24,6 @@ public class ConsumerController implements Initializable {
     @FXML
     private ChoiceBox<String> autoCommitChoiceBox;
 
-    // 用于管理所有消费者组实例的Map
     private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
     private final Map<String, Tab> consumerGroupTabs = new HashMap<>();
 
@@ -39,8 +35,6 @@ public class ConsumerController implements Initializable {
         // 初始化自动提交选项
         autoCommitChoiceBox.getItems().addAll("true", "false");
         autoCommitChoiceBox.setValue("true");
-
-        // 注册到ControllerRegistry
         ControllerRegistry.setConsumerController(this);
     }
 

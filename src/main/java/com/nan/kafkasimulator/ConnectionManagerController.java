@@ -34,9 +34,6 @@ public class ConnectionManagerController implements Initializable {
     private String bootstrapServers;
     private Consumer<Boolean> onConnectionStateChanged;
 
-    // private MessageProducerManager messageProducerManager;
-    // private ConsumerGroupUIManager consumerGroupUIManager;
-
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
         bootstrapServersField.setText("localhost:19092");

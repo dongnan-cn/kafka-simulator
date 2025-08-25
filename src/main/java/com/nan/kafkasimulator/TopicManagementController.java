@@ -22,10 +22,8 @@ import org.apache.kafka.clients.admin.NewTopic;
 
 import com.nan.kafkasimulator.utils.Logger;
 
-// 注意：这里不再实现 Initializable 接口
 public class TopicManagementController {
 
-    // FXML 变量，与 topic-management.fxml 中的 fx:id 对应
     @FXML
     private ListView<String> topicsListView;
 
@@ -67,7 +65,6 @@ public class TopicManagementController {
         this.onTopicsUpdated = onTopicsUpdated;
     }
 
-    // FXML 文件的 onAction 绑定
     @FXML
     protected void onRefreshTopicsButtonClick() {
         refreshTopicsList();
