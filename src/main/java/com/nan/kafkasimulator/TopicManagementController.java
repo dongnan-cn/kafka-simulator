@@ -47,7 +47,6 @@ public class TopicManagementController {
     private Button onDeleteTopicButtonClick;
 
     private AdminClient adminClient;
-    private ComboBox<String> producerTopicComboBox;
     private Consumer<List<String>> onTopicsUpdated;
 
     void setAllControlsDisable(boolean disable) {
@@ -62,10 +61,6 @@ public class TopicManagementController {
 
     public void setAdminClient(AdminClient adminClient) {
         this.adminClient = adminClient;
-    }
-
-    public void setProducerTopicComboBox(ComboBox<String> producerTopicComboBox) {
-        this.producerTopicComboBox = producerTopicComboBox;
     }
 
     public void setOnTopicsUpdated(Consumer<List<String>> onTopicsUpdated) {
@@ -139,10 +134,11 @@ public class TopicManagementController {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
             Platform.runLater(() -> {
+                ComboBox<String> comboBoxTopic = ControllerRegistry.getProducerController().getProducerTopicComboBox();
                 topicsListView.getItems().clear();
                 topicsListView.getItems().addAll(topicNames);
-                producerTopicComboBox.getItems().clear();
-                producerTopicComboBox.getItems().addAll(topicNames);
+                comboBoxTopic.getItems().clear();
+                comboBoxTopic.getItems().addAll(topicNames);
                 onTopicsUpdated.accept(new ArrayList<>(topicNames));
                 log("Topic 列表刷新成功。");
             });

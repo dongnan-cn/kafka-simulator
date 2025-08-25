@@ -1,12 +1,19 @@
 package com.nan.kafkasimulator;
 
-import javafx.fxml.FXML;
-
 public class ControllerRegistry {
 
     private static TopicManagementController topicManagementController;
 
     private static ConnectionManagerController connectionManagerController;
+    private static ProducerController producerController;
+
+    public static ProducerController getProducerController() {
+        return producerController;
+    }
+
+    public static void setProducerController(ProducerController producerController) {
+        ControllerRegistry.producerController = producerController;
+    }
 
     public static TopicManagementController getTopicManagementController() {
         return topicManagementController;

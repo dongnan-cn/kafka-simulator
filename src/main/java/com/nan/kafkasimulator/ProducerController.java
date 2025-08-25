@@ -1,67 +1,206 @@
-package com.nan.kafkasimulator.manager;
+package com.nan.kafkasimulator;
 
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.nan.kafkasimulator.utils.Logger.log;
 
-/**
- * 负责管理Kafka消息生产的类，包括发送单条消息和自动发送消息等操作
- */
-public class MessageProducerManager {
-    private final KafkaProducer<String, String> producer;
-    private final ComboBox<String> producerTopicComboBox;
-    private final TextField producerKeyField;
-    private final TextArea producerValueArea;
-    private final TextField messagesPerSecondField;
-    private final ChoiceBox<String> dataTypeChoiceBox;
-    private final TextField keyLengthField;
-    private final TextField jsonFieldsCountField;
-    private final Button startAutoSendButton;
-    private final Button stopAutoSendButton;
-    private final Button sendButton;
-    private final Label sentCountLabel;
+import java.net.URL;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.ResourceBundle;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import com.nan.kafkasimulator.utils.Alerter;
+
+public class ProducerController implements Initializable {
+
+    @FXML
+    private ComboBox<String> producerTopicComboBox;
+    @FXML
+    private TextField producerKeyField;
+    @FXML
+    private TextArea producerValueArea;
+    @FXML
+    private ChoiceBox<String> acksChoiceBox;
+    @FXML
+    private TextField batchSizeField;
+    @FXML
+    private TextField lingerMsField;
+    @FXML
+    private Button onSendButtonClick;
+    @FXML
+    private TextField messagesPerSecondField;
+    @FXML
+    private ChoiceBox<String> dataTypeChoiceBox;
+    @FXML
+    private Label sentCountLabel;
+    @FXML
+    private TextField keyLengthField;
+    @FXML
+    private TextField jsonFieldsCountField;
+    @FXML
+    private Button startAutoSendButton;
+    @FXML
+    private Button stopAutoSendButton;
+
+    private KafkaProducer<String, String> producer;
 
     private final Map<String, ScheduledExecutorService> autoSendExecutors = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> sentCounts = new ConcurrentHashMap<>();
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final Random random = new Random();
 
-    public MessageProducerManager(KafkaProducer<String, String> producer, 
-                                ComboBox<String> producerTopicComboBox,
-                                TextField producerKeyField, 
-                                TextArea producerValueArea,
-                                TextField messagesPerSecondField,
-                                ChoiceBox<String> dataTypeChoiceBox,
-                                TextField keyLengthField,
-                                TextField jsonFieldsCountField,
-                                Button startAutoSendButton,
-                                Button stopAutoSendButton,
-                                Button sendButton,
-                                Label sentCountLabel) {
-        this.producer = producer;
-        this.producerTopicComboBox = producerTopicComboBox;
-        this.producerKeyField = producerKeyField;
-        this.producerValueArea = producerValueArea;
-        this.messagesPerSecondField = messagesPerSecondField;
-        this.dataTypeChoiceBox = dataTypeChoiceBox;
-        this.keyLengthField = keyLengthField;
-        this.jsonFieldsCountField = jsonFieldsCountField;
-        this.startAutoSendButton = startAutoSendButton;
-        this.stopAutoSendButton = stopAutoSendButton;
-        this.sendButton = sendButton;
-        this.sentCountLabel = sentCountLabel;
+    @Override
+    public void initialize(URL arg0, ResourceBundle arg1) {
+        acksChoiceBox.getItems().addAll("all", "1", "0");
+        acksChoiceBox.setValue("1");
+        startAutoSendButton.setDisable(true);
+        stopAutoSendButton.setDisable(true);
+
+        dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON"));
+        dataTypeChoiceBox.setValue("String");
+        dataTypeChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            jsonFieldsCountField.setDisable(!"JSON".equals(newVal));
+            if ("JSON".equals(newVal)) {
+                producerValueArea.setDisable(true);
+                producerValueArea.setPromptText("JSON数据将自动生成");
+            } else {
+                producerValueArea.setDisable(false);
+                producerValueArea.setPromptText("输入要发送的消息");
+            }
+        });
     }
 
-    public void sendMessage() {
+    public KafkaProducer<String, String> getProducer() {
         if (producer == null) {
+            initializeProducer();
+        }
+        return producer;
+    }
+
+    public void closeProducer() {
+        if (producer != null) {
+            producer.close(java.time.Duration.ofSeconds(5));
+            producer = null;
+            log("生产者已关闭。");
+        }
+    }
+
+    private void initializeProducer() {
+        Properties producerProps = new Properties();
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                ControllerRegistry.getConnectionManagerController().getBootstrapServers());
+        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.ACKS_CONFIG, "1"); // 默认值
+
+        this.producer = new KafkaProducer<>(producerProps);
+    }
+
+    // 获取生产者Topic ComboBox的方法，供其他控制器使用
+    public ComboBox<String> getProducerTopicComboBox() {
+        return producerTopicComboBox;
+    }
+
+    void setStatusOnConnectionChanged(boolean connected) {
+        if (connected) {
+            startAutoSendButton.setDisable(false);
+        } else {
+            startAutoSendButton.setDisable(true);
+            stopAutoSendButton.setDisable(true);
+        }
+    }
+
+    // FXML 事件处理方法
+    @FXML
+    protected void onSendButtonClick() {
+        sendMessage();
+    }
+
+    @FXML
+    private void onStartAutoSendButtonClick() {
+        startAutoSend();
+    }
+
+    @FXML
+    private void onStopAutoSendButtonClick() {
+        stopAutoSend();
+    }
+
+    @FXML
+    protected void onProducerConfigChange() {
+        updateProducerConfig(
+                acksChoiceBox.getValue(),
+                batchSizeField.getText(),
+                lingerMsField.getText());
+
+    }
+
+    public void updateProducerConfig(String acks, String batchSize, String lingerMs) {
+
+        try {
+            Properties producerProps = new Properties();
+            producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                    ControllerRegistry.getConnectionManagerController().getBootstrapServers());
+            producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            producerProps.put(ProducerConfig.ACKS_CONFIG, acks);
+            producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSize));
+            producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMs));
+
+            // 关闭旧的生产者
+            if (producer != null) {
+                producer.close(java.time.Duration.ofSeconds(1));
+            }
+            // 创建新的生产者
+            this.producer = new KafkaProducer<>(producerProps);
+            log("生产者配置已更新");
+        } catch (NumberFormatException e) {
+            log("错误: 批次大小和延迟时间必须是有效的数字。");
+            Alerter.showAlert("输入错误", null, "批次大小和延迟时间必须是有效的数字。");
+        }
+    }
+
+    // 设置控件禁用状态的方法
+    public void setControlsDisable(boolean disable) {
+        producerTopicComboBox.setDisable(disable);
+        producerKeyField.setDisable(disable);
+        producerValueArea.setDisable(disable);
+        acksChoiceBox.setDisable(disable);
+        batchSizeField.setDisable(disable);
+        lingerMsField.setDisable(disable);
+        onSendButtonClick.setDisable(disable);
+        messagesPerSecondField.setDisable(disable);
+        dataTypeChoiceBox.setDisable(disable);
+        sentCountLabel.setDisable(disable);
+        keyLengthField.setDisable(disable);
+        jsonFieldsCountField.setDisable(disable);
+        // startAutoSendButton.setDisable(disable);
+        // stopAutoSendButton.setDisable(disable);
+
+        // // 如果不禁用，则根据当前状态设置按钮
+        // if (!disable) {
+        // stopAutoSendButton.setDisable(true);
+        // }
+    }
+
+    // 清理资源的方法
+    public void sendMessage() {
+        if (getProducer() == null) {
             log("错误: 请先连接到 Kafka 集群。");
             return;
         }
@@ -79,7 +218,7 @@ public class MessageProducerManager {
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
             log("正在发送消息...");
-            producer.send(record, (metadata, exception) -> {
+            getProducer().send(record, (metadata, exception) -> {
                 Platform.runLater(() -> {
                     if (exception == null) {
                         log("消息发送成功！");
@@ -98,9 +237,9 @@ public class MessageProducerManager {
 
     public void startAutoSend() {
         String topic = producerTopicComboBox.getValue();
-        if (producer == null || topic == null || topic.isEmpty()) {
+        if (getProducer() == null || topic == null || topic.isEmpty()) {
             log("错误: 请先连接到 Kafka 并选择一个 Topic。");
-            if (producer == null) {
+            if (getProducer() == null) {
                 log("错误: producer is null");
             } else {
                 log("错误: topic is " + topic);
@@ -132,7 +271,7 @@ public class MessageProducerManager {
             dataTypeChoiceBox.setDisable(true);
             keyLengthField.setDisable(true);
             jsonFieldsCountField.setDisable(true);
-            sendButton.setDisable(true);
+            onSendButtonClick.setDisable(true);
 
             log("开始向 Topic: \"" + topic + "\" 自动发送 " + messagesPerSecond + " msg/s...");
 
@@ -203,7 +342,7 @@ public class MessageProducerManager {
                 jsonFieldsCountField.setDisable(true);
                 producerValueArea.setDisable(false);
             }
-            sendButton.setDisable(false);
+            onSendButtonClick.setDisable(false);
             Platform.runLater(() -> sentCountLabel.setText("已发送: 0"));
         }
     }
@@ -247,4 +386,5 @@ public class MessageProducerManager {
         sb.append("}");
         return sb.toString();
     }
+
 }
