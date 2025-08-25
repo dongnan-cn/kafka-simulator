@@ -38,12 +38,6 @@ public class MainController implements Initializable {
 
         // 初始化管理器类
         connectionManagementController.setOnConnectionStateChanged(this::onConnectionStateChanged);
-        // connectionManager = new KafkaConnectionManager(
-        // bootstrapServersField.getText(),
-        // this::onConnectionStateChanged);
-
-        // 这些将在连接成功后初始化
-        // messageProducerManager = null;
     }
 
     /**
@@ -54,37 +48,18 @@ public class MainController implements Initializable {
     private void onConnectionStateChanged(boolean isConnected) {
         javafx.application.Platform.runLater(() -> {
             if (isConnected) {
-                // 连接成功后初始化其他管理器
                 topicManagementController.setAdminClient(connectionManagementController.getAdminClient());
                 topicManagementController.setOnTopicsUpdated(this::onTopicsUpdated);
 
-                // messageProducerManager = new MessageProducerManager(
-                // connectionManagementController.getProducer(),
-                // producerTopicComboBox,
-                // producerKeyField,
-                // producerValueArea,
-                // messagesPerSecondField,
-                // dataTypeChoiceBox,
-                // keyLengthField,
-                // jsonFieldsCountField,
-                // startAutoSendButton,
-                // stopAutoSendButton,
-                // onSendButtonClick,
-                // sentCountLabel);
 
-                // 设置bootstrapServers和adminClient到ConsumerController
                 consumerController.setBootstrapServers(connectionManagementController.getBootstrapServers());
                 consumerController.setAdminClient(connectionManagementController.getAdminClient());
-
-                // 连接成功后自动刷新topic列表
                 topicManagementController.refreshTopicsList();
 
-                // 更新UI状态
                 setAllControlsDisable(false);
                 connectionManagementController.setStatusConnected(true);
                 producerController.setStatusOnConnectionChanged(true);
             } else {
-                // 连接失败或断开连接
                 setAllControlsDisable(true);
                 connectionManagementController.setStatusConnected(false);
                 producerController.setStatusOnConnectionChanged(false);
@@ -104,19 +79,8 @@ public class MainController implements Initializable {
     private void setAllControlsDisable(boolean disable) {
         topicManagementController.setAllControlsDisable(disable);
         producerController.setControlsDisable(disable);
-        consumerController.setAllControlsDisable(disable);
+        consumerController.setControlsDisable(disable);
     }
-
-    // @FXML
-    // protected void onProducerConfigChange() {
-    // if (connectionManagementController != null &&
-    // connectionManagementController.getProducer() != null) {
-    // connectionManagementController.updateProducerConfig(
-    // acksChoiceBox.getValue(),
-    // batchSizeField.getText(),
-    // lingerMsField.getText());
-    // }
-    // }
 
     public void cleanup() {
         Logger.log("正在关闭应用程序...");

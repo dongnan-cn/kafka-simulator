@@ -62,7 +62,7 @@ public class ConsumerGroupPanelController implements Initializable {
             // 初始化消费者组管理器
             controller.consumerGroupManager = new ConsumerGroupManager(
                     groupId, topics, autoCommit, bootstrapServers, 
-                    controller.messageTextArea, null);
+                    controller.messageTextArea);
 
             // 设置消费者组ID
             controller.consumerGroupIdLabel.setText(groupId);

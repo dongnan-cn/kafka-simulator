@@ -29,7 +29,6 @@ public class ConsumerGroupManager {
     private final String bootstrapServers;
 
     private final TextArea messagesArea;
-    private final TextArea partitionsArea;
 
     private final List<ConsumerInstance> consumers = new ArrayList<>();
     private ExecutorService executorService;
@@ -38,13 +37,12 @@ public class ConsumerGroupManager {
     private volatile boolean isRunning = false;
 
     public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers,
-            TextArea messagesArea, TextArea partitionsArea) {
+            TextArea messagesArea) {
         this.groupId = groupId;
         this.topics = topics;
         this.autoCommit = autoCommit;
         this.bootstrapServers = bootstrapServers;
         this.messagesArea = messagesArea;
-        this.partitionsArea = partitionsArea;
     }
 
     public String getGroupId() {

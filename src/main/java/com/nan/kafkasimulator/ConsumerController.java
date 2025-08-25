@@ -31,6 +31,8 @@ public class ConsumerController implements Initializable {
     private Button refreshListButton;
     @FXML
     private TabPane consumerTabPane;
+    @FXML
+    private Button onStartConsumerButtonClick;
 
     private final Map<String, ConsumerGroupManager> activeConsumerGroups = new HashMap<>();
     private final Map<String, ConsumerGroupPanelController> consumerGroupPanels = new HashMap<>();
@@ -57,64 +59,6 @@ public class ConsumerController implements Initializable {
         refreshListButton.setOnAction(event -> refreshConsumerGroupsList());
     }
 
-    // private void updateSelectedConsumerGroupsDisplay() {
-    //     consumerGroupsDisplayArea.getChildren().clear();
-    //     List<String> selectedGroups = consumerGroupListView.getSelectionModel().getSelectedItems();
-
-    //     for (String groupId : selectedGroups) {
-    //         Label groupLabel = new Label(groupId);
-    //         groupLabel.setStyle("-fx-padding: 5; -fx-border-color: lightgray; -fx-border-radius: 3;");
-    //         consumerGroupsDisplayArea.getChildren().add(groupLabel);
-    //     }
-    // }
-
-    // private void refreshConsumerGroupsList() {
-    //     if (adminClient == null) {
-    //         log("错误: AdminClient未初始化，请确保已连接到Kafka集群");
-    //         return;
-    //     }
-
-    //     try {
-    //         // 获取所有消费者组
-    //         List<String> groupIds = new java.util.ArrayList<>(adminClient.listConsumerGroups().all().get()
-    //                 .stream()
-    //                 .map(group -> group.groupId())
-    //                 .collect(java.util.stream.Collectors.toList()));
-
-    //         // 更新ListView
-    //         consumerGroupListView.getItems().clear();
-    //         consumerGroupListView.getItems().addAll(groupIds);
-
-    //         log("已刷新消费者组列表");
-    //     } catch (Exception e) {
-    //         log("刷新消费者组列表时出错: " + e.getMessage());
-    //     }
-    // }
-
-    // private void removeSelectedConsumerGroups() {
-    //     List<String> selectedGroups = consumerGroupListView.getSelectionModel().getSelectedItems();
-
-    //     for (String groupId : selectedGroups) {
-    //         // 停止并移除消费者组管理器
-    //         ConsumerGroupManager manager = activeConsumerGroups.remove(groupId);
-    //         if (manager != null) {
-    //             manager.stopAll();
-    //         }
-
-    //         // 移除对应的Tab
-    //         Tab tab = consumerGroupTabs.remove(groupId);
-    //         if (tab != null) {
-    //             consumerTabPane.getTabs().remove(tab);
-    //         }
-
-    //         log("已移除消费者组 '" + groupId + "'");
-    //     }
-
-    //     // 清空选择并更新显示
-    //     consumerGroupListView.getSelectionModel().clearSelection();
-    //     updateSelectedConsumerGroupsDisplay();
-    // }
-
     public void setControlsDisable(boolean disable) {
         // 禁用主要控件
         consumerGroupIdField.setDisable(disable);
@@ -124,6 +68,7 @@ public class ConsumerController implements Initializable {
         consumerGroupsDisplayArea.setDisable(disable);
         removeSelectedButton.setDisable(disable);
         refreshListButton.setDisable(disable);
+        onStartConsumerButtonClick.setDisable(disable);
     }
 
     /**
@@ -299,21 +244,5 @@ public class ConsumerController implements Initializable {
 
         // 清空消费者组列表
         consumerGroupListView.getItems().clear();
-    }
-
-    /**
-     * 设置所有控件的禁用状态
-     * 
-     * @param disable 是否禁用
-     */
-    public void setAllControlsDisable(boolean disable) {
-        // 禁用主要控件
-        consumerGroupIdField.setDisable(disable);
-        topicCheckBoxContainer.setDisable(disable);
-        autoCommitChoiceBox.setDisable(disable);
-        consumerGroupListView.setDisable(disable);
-        consumerGroupsDisplayArea.setDisable(disable);
-        removeSelectedButton.setDisable(disable);
-        refreshListButton.setDisable(disable);
     }
 }
