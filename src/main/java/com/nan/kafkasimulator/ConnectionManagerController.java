@@ -78,7 +78,6 @@ public class ConnectionManagerController implements Initializable {
     protected void onDisconnectButtonClick() {
         ControllerRegistry.getProducerController().cleanup();
         ControllerRegistry.getConsumerController().cleanup();
-
         disconnect();
     }
 

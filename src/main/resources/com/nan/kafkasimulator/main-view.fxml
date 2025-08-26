@@ -15,14 +15,18 @@
          <children>
             <fx:include fx:id="connectionManagement" source="fxml/connection-management.fxml"/>
             <Separator prefWidth="200.0" />
-            <SplitPane dividerPositions="0.45" VBox.vgrow="ALWAYS">
+            <SplitPane dividerPositions="0.7, 0.9" orientation="VERTICAL" VBox.vgrow="ALWAYS">
                <items>
-                  <fx:include fx:id="topicManagement" source="fxml/topic-management.fxml"/>
-                  <fx:include fx:id="producer" source="fxml/producer-management.fxml"/>
-                  <fx:include fx:id="consumer" source="fxml/consumer-group-management.fxml"/>
+                  <SplitPane dividerPositions="0.45">
+                     <items>
+                        <fx:include fx:id="topicManagement" source="fxml/topic-management.fxml"/>
+                        <fx:include fx:id="producer" source="fxml/producer-management.fxml"/>
+                        <fx:include fx:id="consumer" source="fxml/consumer-group-management.fxml"/>
+                     </items>
+                  </SplitPane>
+                  <fx:include fx:id="logManagement" source="fxml/log-management.fxml"/>
                </items>
             </SplitPane>
-            <fx:include fx:id="logManagement" source="fxml/log-management.fxml"/>
          </children>
       </VBox>
    </children>
