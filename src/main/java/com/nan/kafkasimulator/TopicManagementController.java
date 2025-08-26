@@ -1,10 +1,8 @@
 package com.nan.kafkasimulator;
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 
@@ -130,12 +128,14 @@ public class TopicManagementController {
         try {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
-            Platform.runLater(() -> {
-                topicsListView.getItems().clear();
-                topicsListView.getItems().addAll(topicNames);
-                onTopicsUpdated.accept(new ArrayList<>(topicNames));
-                log("Topic 列表刷新成功。");
-            });
+            // Platform.runLater(() -> {
+            System.out.println("正在刷新 Topic 列表...");
+            topicsListView.getItems().clear();
+            topicsListView.getItems().addAll(topicNames);
+            onTopicsUpdated.accept(new ArrayList<>(topicNames));
+            System.out.println("Topic 列表刷新成功。");
+            log("Topic 列表刷新成功。");
+            // });
         } catch (ExecutionException | InterruptedException e) {
             log("刷新 Topic 列表失败: " + e.getMessage());
         }

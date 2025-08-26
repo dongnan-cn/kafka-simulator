@@ -64,10 +64,9 @@ public class ProducerTabController implements Initializable {
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
+        System.out.println("init from Tab");
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
-        startAutoSendButton.setDisable(true);
-        stopAutoSendButton.setDisable(true);
 
         dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON"));
         dataTypeChoiceBox.setValue("String");

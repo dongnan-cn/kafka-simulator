@@ -23,7 +23,7 @@
                     <content>
                         <VBox spacing="10.0" alignment="CENTER">
                             <children>
-                                <Label text="请从左侧Topic列表中选择一个Topic来配置生产者" />
+                                <Label text="连接到Kafka集群并从左侧创建Topic来配置生产者" />
                             </children>
                         </VBox>
                     </content>
