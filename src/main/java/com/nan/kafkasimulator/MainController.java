@@ -2,7 +2,6 @@ package com.nan.kafkasimulator;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
 import com.nan.kafkasimulator.utils.Logger;
 
 import java.net.URL;
@@ -21,7 +20,7 @@ public class MainController implements Initializable {
     private ConsumerController consumerController;
 
     @FXML
-    private TextArea logArea;
+    private LogController logManagementController;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -34,7 +33,6 @@ public class MainController implements Initializable {
 
         // 初始状态，连接按钮可用，断开按钮不可用
         connectionManagementController.setStatusConnected(false);
-        Logger.getInstance().initialize(logArea);
 
         // 初始化管理器类
         connectionManagementController.setOnConnectionStateChanged(this::onConnectionStateChanged);

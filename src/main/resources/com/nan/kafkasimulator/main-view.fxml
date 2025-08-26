@@ -22,11 +22,7 @@
                   <fx:include fx:id="consumer" source="fxml/consumer-group-management.fxml"/>
                </items>
             </SplitPane>
-            <TitledPane collapsible="false" text="日志输出" VBox.vgrow="SOMETIMES">
-               <content>
-                  <TextArea fx:id="logArea" editable="false" prefHeight="200.0" prefWidth="200.0" />
-               </content>
-            </TitledPane>
+            <fx:include fx:id="logManagement" source="fxml/log-management.fxml"/>
          </children>
       </VBox>
    </children>

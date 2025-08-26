@@ -56,7 +56,7 @@ public class ConsumerGroupPanelController implements Initializable {
         try {
             FXMLLoader loader = new FXMLLoader(ConsumerGroupPanelController.class.getResource(
                     "/com/nan/kafkasimulator/fxml/consumer-group-panel.fxml"));
-            VBox pane = loader.load();
+            loader.load();
             ConsumerGroupPanelController controller = loader.getController();
 
             // 初始化消费者组管理器
