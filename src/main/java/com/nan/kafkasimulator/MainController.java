@@ -72,11 +72,12 @@ public class MainController implements Initializable {
      */
     private void onTopicsUpdated(java.util.List<String> topicNames) {
         consumerController.updateAllConsumerTopics(topicNames);
+        producerController.updateTabs(topicNames);
     }
 
     private void setAllControlsDisable(boolean disable) {
         topicManagementController.setAllControlsDisable(disable);
-        producerController.setControlsDisable(disable);
+        producerController.setAllControlsDisable(disable);
         consumerController.setControlsDisable(disable);
     }
 

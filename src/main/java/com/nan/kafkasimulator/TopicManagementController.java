@@ -131,11 +131,8 @@ public class TopicManagementController {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
             Platform.runLater(() -> {
-                ComboBox<String> comboBoxTopic = ControllerRegistry.getProducerController().getProducerTopicComboBox();
                 topicsListView.getItems().clear();
                 topicsListView.getItems().addAll(topicNames);
-                comboBoxTopic.getItems().clear();
-                comboBoxTopic.getItems().addAll(topicNames);
                 onTopicsUpdated.accept(new ArrayList<>(topicNames));
                 log("Topic 列表刷新成功。");
             });

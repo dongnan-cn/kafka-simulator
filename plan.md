@@ -31,8 +31,9 @@
     - [x] 可配置 `acks`, `batch.size`, `linger.ms`。
     - [x] 发送消息到指定 Topic。
     - [x] 显示消息发送状态。
-    - [ ] 新增：实现自动发送功能。
-    - [ ] 新增：为每个 Topic 实现独立的自动发送控制。
+    - [x] 实现自动发送功能。
+    - [x] 为每个 Topic 实现独立的自动发送控制。
+    - [ ] 新增：实现多 Tab 管理 Topic Producer 功能。
 - **消费者 (Consumer) 模块：**
     - [x] 创建多个 Consumer 实例，可属于不同的消费者组。
     - [x] 可配置 `group.id`, `auto.offset.reset`。
@@ -101,8 +102,48 @@
 - [x] 更新ControllerRegistry，添加对ConsumerController的支持。
 - [x] 修改MainController，移除ConsumerGroupUIManager相关代码，添加对ConsumerController的支持。
 - [x] 修复main-view.fxml中的fx:id命名冲突问题。
+
+### 第七阶段：多 Tab 管理 Topic Producer 功能
+
+#### 7.1 设计与规划
+- [x] 确定使用 Tab 管理不同 Topic 的 Producer 的方案
+- [x] 设计 TopicProducer 和 TopicProducerConfig 数据结构
+- [x] 设计 MultiTopicProducerController 和 TopicProducerController 控制器类
+
+#### 7.2 创建数据模型
+- [ ] 创建 TopicProducerConfig 类，封装生产者配置
+- [ ] 创建 TopicProducer 类，封装每个 Topic 的生产者和相关状态
+- [ ] 实现生产者的初始化、配置更新和关闭方法
+
+#### 7.3 创建 FXML 文件
+- [ ] 创建 multi-topic-producer.fxml，包含 TabPane 和添加/删除 Topic 的按钮
+- [ ] 创建 topic-producer.fxml，作为单个 Topic 的生产者配置界面（基于现有的 producer-management.fxml 修改）
+
+#### 7.4 实现控制器
+- [ ] 实现 MultiTopicProducerController 类，管理多个 Topic 的 Tab
+  - [ ] 实现 addTopicTab 方法，添加新的 Topic Tab
+  - [ ] 实现 removeTopicTab 方法，移除 Topic Tab
+  - [ ] 实现 getTopicProducer 方法，获取指定 Topic 的生产者
+- [ ] 实现 TopicProducerController 类，控制单个 Topic 的生产者
+  - [ ] 实现消息发送方法
+  - [ ] 实现生产者配置更新方法
+  - [ ] 实现自动发送开始和停止方法
+
+#### 7.5 集成到主应用
+- [ ] 修改 MainController，集成 MultiTopicProducerController
+- [ ] 更新 main-view.fxml，替换现有的生产者面板为多 Tab 生产者面板
+- [ ] 更新 ControllerRegistry，添加对 MultiTopicProducerController 的支持
+
+#### 7.6 测试与优化
+- [ ] 测试多 Topic 生产者的基本功能
+- [ ] 测试不同 Topic 之间的配置隔离
+- [ ] 测试同时向多个 Topic 发送消息的功能
+- [ ] 优化 UI 交互和用户体验
+- [ ] 添加错误处理和日志记录
+
 ---
 
 ## 备注
 
 - 如果遇到任何问题或有新的想法，请随时更新此文档。
+- 第七阶段是实现多 Tab 管理 Topic Producer 功能的详细计划，包括数据模型设计、FXML 文件创建、控制器实现、集成到主应用以及测试与优化。

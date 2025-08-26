@@ -137,7 +137,7 @@ public class ConnectionManagerController implements Initializable {
     public void disconnect() {
         if (adminClient != null) {
             log("正在断开与 Kafka 集群的连接...");
-            ControllerRegistry.getProducerController().closeProducer();
+            ControllerRegistry.getProducerController().closeAllProducers();
             if (adminClient != null) {
                 adminClient.close(java.time.Duration.ofSeconds(5));
                 adminClient = null;
