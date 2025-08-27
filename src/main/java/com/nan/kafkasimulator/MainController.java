@@ -2,7 +2,6 @@ package com.nan.kafkasimulator;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
 import com.nan.kafkasimulator.controller.ConnectionManagerController;

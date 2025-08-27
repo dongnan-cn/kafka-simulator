@@ -137,7 +137,7 @@ public class BrokerFailureController implements Initializable {
         });
 
         // 初始化按钮事件
-        refreshButton.setOnAction(event -> refreshBrokerList());
+        refreshButton.setOnAction(event -> refreshBrokerList()); // 手动刷新Broker列表
         failRandomBrokerButton.setOnAction(event -> handleFailRandomBroker());
         recoverAllBrokersButton.setOnAction(event -> handleRecoverAllBrokers());
 
@@ -192,34 +192,19 @@ public class BrokerFailureController implements Initializable {
     }
 
     /**
-     * 开始定期更新
+     * 开始定期更新（已禁用）
      */
     private void startPeriodicUpdate() {
-        if (updateTimer != null) {
-            updateTimer.cancel();
-        }
-
-        updateTimer = new Timer("BrokerStatusUpdateTimer", true);
-        updateTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                Platform.runLater(() -> {
-                    if (brokerFailureSimulator != null) {
-                        refreshBrokerList();
-                    }
-                });
-            }
-        }, 5000, 5000); // 每5秒更新一次
+        // 不再需要定时刷新，只在手动操作时刷新
+        updateTimer = null;
     }
 
     /**
-     * 停止定期更新
+     * 停止定期更新（已禁用）
      */
     private void stopPeriodicUpdate() {
-        if (updateTimer != null) {
-            updateTimer.cancel();
-            updateTimer = null;
-        }
+        // 不再需要定时刷新，只在手动操作时刷新
+        updateTimer = null;
     }
 
     /**

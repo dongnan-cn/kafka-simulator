@@ -88,6 +88,7 @@ public class ConnectionManagerController implements Initializable {
     }
 
     public void connect() {
+        bootstrapServers = bootstrapServersField.getText();
         if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
             Alerter.showAlert("连接错误", null, "请输入 Kafka 集群地址。");
             return;
