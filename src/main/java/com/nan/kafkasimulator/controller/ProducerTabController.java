@@ -84,6 +84,19 @@ public class ProducerTabController implements Initializable {
 
         sentCount = new AtomicLong(0);
         initializeProducer();
+
+        // 添加配置变更监听器，任何改变都重新生成producer
+        acksChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            initializeProducer();
+        });
+
+        batchSizeField.textProperty().addListener((obs, oldVal, newVal) -> {
+            initializeProducer();
+        });
+
+        lingerMsField.textProperty().addListener((obs, oldVal, newVal) -> {
+            initializeProducer();
+        });
     }
 
     public KafkaProducer<String, String> getProducer() {
@@ -102,6 +115,7 @@ public class ProducerTabController implements Initializable {
     }
 
     private void initializeProducer() {
+        log("初始化生产者...");
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 ControllerRegistry.getConnectionManagerController().getBootstrapServers());
@@ -139,44 +153,6 @@ public class ProducerTabController implements Initializable {
         stopAutoSend();
     }
 
-    @FXML
-    protected void onProducerConfigChange() {
-        updateProducerConfig(
-                acksChoiceBox.getValue(),
-                batchSizeField.getText(),
-                lingerMsField.getText());
-    }
-
-    public void updateProducerConfig(String acks, String batchSize, String lingerMs) {
-        try {
-            Properties producerProps = new Properties();
-            producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                    ControllerRegistry.getConnectionManagerController().getBootstrapServers());
-            producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            producerProps.put(ProducerConfig.ACKS_CONFIG, acks);
-            producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSize));
-            producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMs));
-
-            // 关闭旧的生产者
-            if (producer != null) {
-                producer.close(java.time.Duration.ofSeconds(1));
-            }
-            // 创建新的生产者
-            this.producer = new KafkaProducer<>(producerProps);
-            log(String.format("生产者 [%s] 配置已更新", topicName));
-        } catch (NumberFormatException e) {
-            log("错误: 批次大小和延迟时间必须是有效的数字。");
-            Platform.runLater(() -> {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("输入错误");
-                alert.setHeaderText(null);
-                alert.setContentText("批次大小和延迟时间必须是有效的数字。");
-                alert.showAndWait();
-            });
-        }
-    }
-
     public void setControlsDisable(boolean disable) {
         producerKeyField.setDisable(disable);
         producerValueArea.setDisable(disable);
@@ -204,7 +180,7 @@ public class ProducerTabController implements Initializable {
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
             log(String.format("正在发送消息到 [%s]...", topicName));
-            getProducer().send(record, (metadata, exception) -> {
+            producer.send(record, (metadata, exception) -> {
                 Platform.runLater(() -> {
                     if (exception == null) {
                         log("消息发送成功！");

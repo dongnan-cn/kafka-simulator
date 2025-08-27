@@ -14,7 +14,6 @@ import javafx.scene.layout.HBox;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.Timer;
-import java.util.TimerTask;
 
 import static com.nan.kafkasimulator.utils.Logger.log;
 
