@@ -13,19 +13,40 @@
          AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
          AnchorPane.topAnchor="0.0">
          <children>
-            <fx:include fx:id="connectionManagement" source="fxml/connection-management.fxml"/>
+            <fx:include fx:id="connectionManagement" source="fxml/connection-management.fxml" />
             <Separator prefWidth="200.0" />
-            <SplitPane dividerPositions="0.7, 0.9" orientation="VERTICAL" VBox.vgrow="ALWAYS">
-               <items>
-                  <SplitPane dividerPositions="0.45">
-                     <items>
-                        <fx:include fx:id="topicManagement" source="fxml/topic-management.fxml"/>
-                        <fx:include fx:id="producer" source="fxml/producer-management.fxml"/>
-                        <fx:include fx:id="consumer" source="fxml/consumer-group-management.fxml"/>
-                     </items>
-                  </SplitPane>
-                  <fx:include fx:id="logManagement" source="fxml/log-management.fxml"/>
-               </items>
+            <SplitPane dividerPositions="0.7, 0.9" orientation="VERTICAL"
+               VBox.vgrow="ALWAYS">
+               <TabPane fx:id="mainTabPane" VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+                  <tabs>
+                     <Tab text="Home">
+                        <content>
+                           <SplitPane dividerPositions="0.7, 0.9" orientation="VERTICAL"
+                              VBox.vgrow="ALWAYS">
+                              <items>
+                                 <SplitPane dividerPositions="0.45">
+                                    <items>
+                                       <fx:include fx:id="topicManagement"
+                                          source="fxml/topic-management.fxml" />
+                                       <fx:include fx:id="producer"
+                                          source="fxml/producer-management.fxml" />
+                                       <fx:include fx:id="consumer"
+                                          source="fxml/consumer-group-management.fxml" />
+                                    </items>
+                                 </SplitPane>
+                              </items>
+                           </SplitPane>
+                        </content>
+                     </Tab>
+                     <Tab text="Broker故障模拟">
+                        <content>
+                           <fx:include fx:id="brokerFailure"
+                              source="fxml/broker-failure-tab-content.fxml" />
+                        </content>
+                     </Tab>
+                  </tabs>
+               </TabPane>
+               <fx:include fx:id="logManagement" source="fxml/log-management.fxml" />
             </SplitPane>
          </children>
       </VBox>

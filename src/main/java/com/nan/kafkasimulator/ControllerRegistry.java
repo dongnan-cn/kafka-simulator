@@ -4,6 +4,7 @@ import com.nan.kafkasimulator.controller.ConnectionManagerController;
 import com.nan.kafkasimulator.controller.ConsumerController;
 import com.nan.kafkasimulator.controller.ProducerController;
 import com.nan.kafkasimulator.controller.TopicManagementController;
+import com.nan.kafkasimulator.controller.BrokerFailureController;
 
 public class ControllerRegistry {
 
@@ -12,6 +13,7 @@ public class ControllerRegistry {
     private static ConnectionManagerController connectionManagerController;
     private static ProducerController producerController;
     private static ConsumerController consumerController;
+    private static BrokerFailureController brokerFailureController;
 
     public static ProducerController getProducerController() {
         return producerController;
@@ -43,5 +45,13 @@ public class ControllerRegistry {
 
     public static void setConsumerController(ConsumerController consumerController) {
         ControllerRegistry.consumerController = consumerController;
+    }
+
+    public static BrokerFailureController getBrokerFailureController() {
+        return brokerFailureController;
+    }
+
+    public static void setBrokerFailureController(BrokerFailureController brokerFailureController) {
+        ControllerRegistry.brokerFailureController = brokerFailureController;
     }
 }

@@ -2,12 +2,15 @@ package com.nan.kafkasimulator;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 
 import com.nan.kafkasimulator.controller.ConnectionManagerController;
 import com.nan.kafkasimulator.controller.ConsumerController;
 import com.nan.kafkasimulator.controller.LogController;
 import com.nan.kafkasimulator.controller.ProducerController;
 import com.nan.kafkasimulator.controller.TopicManagementController;
+import com.nan.kafkasimulator.controller.BrokerFailureController;
 import com.nan.kafkasimulator.utils.Logger;
 
 import java.net.URL;
@@ -27,6 +30,12 @@ public class MainController implements Initializable {
 
     @FXML
     private LogController logManagementController;
+    
+    @FXML
+    private TabPane mainTabPane;
+    
+    @FXML
+    private BrokerFailureController brokerFailureController;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -34,6 +43,7 @@ public class MainController implements Initializable {
         ControllerRegistry.setTopicManagementController(topicManagementController);
         ControllerRegistry.setProducerController(producerController);
         ControllerRegistry.setConsumerController(consumerController);
+        ControllerRegistry.setBrokerFailureController(brokerFailureController);
 
         setAllControlsDisable(true);
 
@@ -63,10 +73,20 @@ public class MainController implements Initializable {
                 setAllControlsDisable(false);
                 connectionManagementController.setStatusConnected(true);
                 producerController.setStatusOnConnectionChanged(true);
+                
+                // 设置Broker故障控制器的连接状态
+                if (brokerFailureController != null) {
+                    brokerFailureController.setConnected(true);
+                }
             } else {
                 setAllControlsDisable(true);
                 connectionManagementController.setStatusConnected(false);
                 producerController.setStatusOnConnectionChanged(false);
+                
+                // 设置Broker故障控制器的连接状态
+                if (brokerFailureController != null) {
+                    brokerFailureController.setConnected(false);
+                }
             }
         });
     }
@@ -97,6 +117,11 @@ public class MainController implements Initializable {
 
         if (connectionManagementController != null) {
             connectionManagementController.disconnect();
+        }
+        
+        // 清理Broker故障控制器
+        if (brokerFailureController != null) {
+            brokerFailureController.cleanup();
         }
 
         Logger.log("所有资源已释放。");
