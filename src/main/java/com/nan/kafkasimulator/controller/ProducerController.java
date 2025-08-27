@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -103,7 +103,6 @@ public class ProducerController {
 
     // 设置连接状态变化时的处理
     public void setStatusOnConnectionChanged(boolean connected) {
-        System.out.println("tab controller count: " + topicControllers.size());
         for (ProducerTabController controller : topicControllers.values()) {
             controller.setStatusOnConnectionChanged(connected);
         }

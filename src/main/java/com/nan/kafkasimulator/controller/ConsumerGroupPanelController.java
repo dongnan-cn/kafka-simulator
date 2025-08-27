@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -7,6 +7,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 import org.apache.kafka.clients.admin.AdminClient;
+
+import com.nan.kafkasimulator.ConsumerGroupManager;
 
 import java.io.IOException;
 import java.net.URL;

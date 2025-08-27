@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import com.nan.kafkasimulator.utils.Logger;
 import javafx.fxml.FXML;

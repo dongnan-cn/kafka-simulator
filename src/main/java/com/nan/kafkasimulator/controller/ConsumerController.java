@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -11,6 +11,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+
+import com.nan.kafkasimulator.ConsumerGroupManager;
+import com.nan.kafkasimulator.ControllerRegistry;
+
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 public class ConsumerController implements Initializable {

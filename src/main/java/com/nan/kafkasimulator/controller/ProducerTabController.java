@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -21,6 +21,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
+
+import com.nan.kafkasimulator.ControllerRegistry;
 
 public class ProducerTabController implements Initializable {
 
@@ -64,7 +66,6 @@ public class ProducerTabController implements Initializable {
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
-        System.out.println("init from Tab");
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 

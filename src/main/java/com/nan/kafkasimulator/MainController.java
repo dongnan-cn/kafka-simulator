@@ -2,6 +2,12 @@ package com.nan.kafkasimulator;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+
+import com.nan.kafkasimulator.controller.ConnectionManagerController;
+import com.nan.kafkasimulator.controller.ConsumerController;
+import com.nan.kafkasimulator.controller.LogController;
+import com.nan.kafkasimulator.controller.ProducerController;
+import com.nan.kafkasimulator.controller.TopicManagementController;
 import com.nan.kafkasimulator.utils.Logger;
 
 import java.net.URL;

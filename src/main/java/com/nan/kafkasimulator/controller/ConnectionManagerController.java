@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import static com.nan.kafkasimulator.utils.Logger.log;
 
@@ -11,6 +11,8 @@ import java.util.function.Consumer;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+
+import com.nan.kafkasimulator.ControllerRegistry;
 import com.nan.kafkasimulator.utils.Alerter;
 
 import javafx.concurrent.Task;

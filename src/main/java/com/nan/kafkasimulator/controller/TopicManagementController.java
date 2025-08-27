@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -45,7 +45,7 @@ public class TopicManagementController {
     private AdminClient adminClient;
     private Consumer<List<String>> onTopicsUpdated;
 
-    void setAllControlsDisable(boolean disable) {
+    public void setAllControlsDisable(boolean disable) {
         newTopicNameField.setDisable(disable);
         numPartitionsField.setDisable(disable);
         replicationFactorField.setDisable(disable);
@@ -129,11 +129,9 @@ public class TopicManagementController {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
             // Platform.runLater(() -> {
-            System.out.println("正在刷新 Topic 列表...");
             topicsListView.getItems().clear();
             topicsListView.getItems().addAll(topicNames);
             onTopicsUpdated.accept(new ArrayList<>(topicNames));
-            System.out.println("Topic 列表刷新成功。");
             log("Topic 列表刷新成功。");
             // });
         } catch (ExecutionException | InterruptedException e) {

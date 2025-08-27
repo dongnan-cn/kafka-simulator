@@ -4,7 +4,8 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nan.kafkasimulator.LogController">
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+   fx:controller="com.nan.kafkasimulator.controller.LogController">
    <children>
       <TitledPane collapsible="false" text="日志输出" VBox.vgrow="SOMETIMES">
          <content>

@@ -1,4 +1,4 @@
-package com.nan.kafkasimulator;
+package com.nan.kafkasimulator.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -6,6 +6,8 @@ import javafx.scene.control.*;
 import javafx.application.Platform;
 
 import org.apache.kafka.clients.admin.AdminClient;
+
+import com.nan.kafkasimulator.ConsumerGroupManager;
 
 import java.net.URL;
 import java.util.ResourceBundle;
