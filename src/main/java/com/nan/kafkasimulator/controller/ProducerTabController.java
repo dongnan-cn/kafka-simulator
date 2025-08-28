@@ -318,7 +318,7 @@ public class ProducerTabController implements Initializable {
                 // 延迟500毫秒执行初始化
                 scheduler.schedule(() -> {
                     Platform.runLater(() -> initializeProducer());
-                }, 500, TimeUnit.MILLISECONDS);
+                }, 1, TimeUnit.SECONDS);
             }
         });
     }
