@@ -26,6 +26,13 @@
                 <TextField fx:id="lingerMsField" prefWidth="60.0" text="0" />
             </children>
         </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="10.0">
+            <children>
+                <Label text="buffer.memory:" />
+                <TextField fx:id="bufferMemoryField" prefWidth="80.0" text="33554432" />
+                <Label text="(字节)" />
+            </children>
+        </HBox>
         <Button fx:id="onSendButtonClick" maxWidth="1.7976931348623157E308"
             onAction="#onSendButtonClick" text="发送消息" />
         <Separator prefWidth="200.0" />

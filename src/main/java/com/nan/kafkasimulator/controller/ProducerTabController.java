@@ -16,6 +16,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.HashMap;
+import java.util.Map;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -37,6 +41,8 @@ public class ProducerTabController implements Initializable {
     @FXML
     private TextField lingerMsField;
     @FXML
+    private TextField bufferMemoryField;
+    @FXML
     private Button onSendButtonClick;
     @FXML
     private TextField messagesPerSecondField;
@@ -56,6 +62,7 @@ public class ProducerTabController implements Initializable {
     private KafkaProducer<String, String> producer;
     private ScheduledExecutorService autoSendExecutor;
     private AtomicLong sentCount;
+    private Map<TextField, ScheduledExecutorService> delayedListeners = new HashMap<>();
     private final String topicName;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final Random random = new Random();
@@ -90,13 +97,10 @@ public class ProducerTabController implements Initializable {
             initializeProducer();
         });
 
-        batchSizeField.textProperty().addListener((obs, oldVal, newVal) -> {
-            initializeProducer();
-        });
-
-        lingerMsField.textProperty().addListener((obs, oldVal, newVal) -> {
-            initializeProducer();
-        });
+        // 添加延迟监听器，避免频繁触发初始化
+        addDelayedListener(batchSizeField);
+        addDelayedListener(lingerMsField);
+        addDelayedListener(bufferMemoryField);
     }
 
     public KafkaProducer<String, String> getProducer() {
@@ -124,6 +128,7 @@ public class ProducerTabController implements Initializable {
         producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
         producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText()));
         producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
+        producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, Long.parseLong(bufferMemoryField.getText()));
 
         this.producer = new KafkaProducer<>(producerProps);
     }
@@ -159,6 +164,7 @@ public class ProducerTabController implements Initializable {
         acksChoiceBox.setDisable(disable);
         batchSizeField.setDisable(disable);
         lingerMsField.setDisable(disable);
+        bufferMemoryField.setDisable(disable);
         onSendButtonClick.setDisable(disable);
         messagesPerSecondField.setDisable(disable);
         dataTypeChoiceBox.setDisable(disable);
@@ -295,7 +301,35 @@ public class ProducerTabController implements Initializable {
         }
     }
 
+    private void addDelayedListener(TextField textField) {
+        textField.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                // 取消之前可能存在的任务
+                if (delayedListeners.containsKey(textField)) {
+                    ScheduledExecutorService oldScheduler = delayedListeners.get(textField);
+                    oldScheduler.shutdownNow();
+                }
+
+                // 创建新的调度器
+                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+                delayedListeners.put(textField, scheduler);
+
+                // 延迟500毫秒执行初始化
+                scheduler.schedule(() -> {
+                    Platform.runLater(() -> initializeProducer());
+                }, 500, TimeUnit.MILLISECONDS);
+            }
+        });
+    }
+
     public void cleanup() {
+        // 关闭所有延迟监听器
+        for (ScheduledExecutorService scheduler : delayedListeners.values()) {
+            scheduler.shutdownNow();
+        }
+        delayedListeners.clear();
+
         // 关闭自动发送任务
         if (autoSendExecutor != null && !autoSendExecutor.isShutdown()) {
             log(String.format("正在关闭 [%s] 的自动发送任务...", topicName));
