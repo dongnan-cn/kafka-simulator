@@ -36,4 +36,7 @@
         <Button fx:id="stopConsumerGroupButton" text="停止消费者组" />
         <Button fx:id="resumeConsumerGroupButton" text="恢复消费者组" disable="true" />
     </HBox>
+
+    <!-- 分割线 -->
+    <Separator prefWidth="Infinity" />
 </VBox>
