@@ -126,9 +126,9 @@ public class ProducerTabController implements Initializable {
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
-        producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText()));
-        producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText()));
-        producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, Long.parseLong(bufferMemoryField.getText()));
+        producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText().isEmpty() ? "0" : batchSizeField.getText()));
+        producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText().isEmpty() ? "0" : lingerMsField.getText()));
+        producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, Long.parseLong(bufferMemoryField.getText().isEmpty() ? "0" : bufferMemoryField.getText()));
 
         this.producer = new KafkaProducer<>(producerProps);
     }
