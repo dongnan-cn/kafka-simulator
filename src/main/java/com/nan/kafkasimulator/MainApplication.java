@@ -11,9 +11,14 @@ public class MainApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
+        Scene scene = new Scene(fxmlLoader.load(), 1200, 800);
+        MainController controller = fxmlLoader.getController();
         stage.setTitle("Kafka Simulator");
         stage.setScene(scene);
+        stage.setOnCloseRequest(event -> {
+            System.out.println("窗口关闭，正在执行清理...");
+            controller.cleanup();
+        });
         stage.show();
     }
 

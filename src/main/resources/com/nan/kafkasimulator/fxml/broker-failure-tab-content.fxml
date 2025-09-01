@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      spacing="10" alignment="TOP_LEFT"
+      fx:controller="com.nan.kafkasimulator.controller.BrokerFailureController"
+      style="-fx-padding: 10;">
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Broker故障模拟" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <Label fx:id="statusLabel" text="未连接到Kafka集群"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button fx:id="refreshButton" text="刷新列表"/>
+        <Button fx:id="failRandomBrokerButton" text="随机宕机一个Broker"/>
+        <Button fx:id="recoverAllBrokersButton" text="恢复所有Broker"/>
+    </HBox>
+
+    <TableView fx:id="brokerTableView" prefHeight="400.0" prefWidth="600.0">
+        <columns>
+            <TableColumn fx:id="idColumn" prefWidth="75.0" text="ID"/>
+            <TableColumn fx:id="addressColumn" prefWidth="150.0" text="地址"/>
+            <TableColumn fx:id="statusColumn" prefWidth="100.0" text="状态"/>
+            <TableColumn fx:id="failureTimeColumn" prefWidth="180.0" text="故障时间"/>
+            <TableColumn fx:id="actionsColumn" prefWidth="150.0" text="操作"/>
+        </columns>
+    </TableView>
+
+    <TitledPane text="使用说明" expanded="false">
+        <VBox spacing="5">
+            <Label text="1. 使用此界面可以模拟Kafka集群中broker的宕机和恢复"/>
+            <Label text="2. 点击'刷新列表'按钮可以更新broker状态信息"/>
+            <Label text="3. 点击'随机宕机一个Broker'按钮可以随机选择一个正常的broker进行宕机模拟"/>
+            <Label text="4. 点击'恢复所有Broker'按钮可以恢复所有宕机的broker"/>
+            <Label text="5. 在表格中，可以对每个broker单独进行宕机和恢复操作"/>
+            <Label text="6. 结合不同的acks配置，可以观察在broker故障情况下的消息可靠性表现"/>
+        </VBox>
+    </TitledPane>
+
+</VBox>

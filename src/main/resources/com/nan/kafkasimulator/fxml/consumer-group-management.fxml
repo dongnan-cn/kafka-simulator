@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<SplitPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.nan.kafkasimulator.controller.ConsumerController"
+    dividerPositions="0.3" orientation="HORIZONTAL">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+
+    <!-- 左侧面板 - 消费者组列表和创建区域 -->
+    <VBox spacing="10.0" prefWidth="300.0">
+        <children>
+            <!-- 创建消费者组区域 -->
+            <TitledPane text="新增消费者组" collapsible="false" VBox.vgrow="NEVER">
+                <content>
+                    <VBox spacing="10.0">
+                        <Label text="消费者组 ID">
+                            <font>
+                                <Font name="System Bold" size="12.0" />
+                            </font>
+                        </Label>
+                        <TextField fx:id="consumerGroupIdField" promptText="输入消费者组 ID" />
+                        <Label text="订阅 Topic">
+                            <font>
+                                <Font name="System Bold" size="12.0" />
+                            </font>
+                        </Label>
+                        <ScrollPane fitToWidth="true" prefHeight="150.0">
+                            <content>
+                                <VBox fx:id="topicCheckBoxContainer" spacing="5.0" />
+                            </content>
+                        </ScrollPane>
+                        <Label text="自动提交偏移量">
+                            <font>
+                                <Font name="System Bold" size="12.0" />
+                            </font>
+                        </Label>
+                        <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="150.0"
+                            value="true" />
+                        <HBox fx:id="autoCommitIntervalBox" spacing="10.0" alignment="CENTER_LEFT">
+                            <Label text="自动提交间隔(ms)">
+                                <font>
+                                    <Font name="System Bold" size="12.0" />
+                                </font>
+                            </Label>
+                            <TextField fx:id="autoCommitIntervalField" prefWidth="150.0" promptText="5000" />
+                        </HBox>
+                        <Button fx:id="onStartConsumerButtonClick"
+                            maxWidth="1.7976931348623157E308"
+                            onAction="#onStartConsumerButtonClick" text="启动消费者组" />
+                    </VBox>
+                </content>
+            </TitledPane>
+
+            <!-- 消费者组列表区域 -->
+            <TitledPane text="消费者组列表" collapsible="false" VBox.vgrow="ALWAYS">
+                <content>
+                    <VBox spacing="10.0">
+                        <ListView fx:id="consumerGroupListView" VBox.vgrow="ALWAYS" />
+                        <HBox spacing="10.0" alignment="CENTER_RIGHT">
+                            <Button fx:id="removeSelectedButton" text="移除选中" disable="true" />
+                            <Button fx:id="refreshListButton" text="刷新列表" />
+                        </HBox>
+                    </VBox>
+                </content>
+            </TitledPane>
+        </children>
+    </VBox>
+
+    <!-- 右侧面板 - 多面板显示区域 -->
+    <ScrollPane fitToWidth="true" fitToHeight="true">
+        <content>
+            <TilePane fx:id="consumerGroupsDisplayArea" hgap="10.0" vgap="10.0" 
+                prefColumns="2" prefTileWidth="400.0">
+                <padding>
+                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                </padding>
+            </TilePane>
+        </content>
+    </ScrollPane>
+</SplitPane>
