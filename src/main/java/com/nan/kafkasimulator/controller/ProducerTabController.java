@@ -2,6 +2,8 @@ package com.nan.kafkasimulator.controller;
 
 import com.nan.kafkasimulator.ControllerRegistry;
 import com.nan.kafkasimulator.avro.SchemaManager;
+import com.nan.kafkasimulator.utils.RandomDataGenerator;
+
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -27,7 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -474,15 +475,7 @@ public class ProducerTabController implements Initializable {
     }
 
     private String generateRandomJson(int fieldCount) {
-        StringBuilder sb = new StringBuilder("{");
-        for (int i = 0; i < fieldCount; i++) {
-            sb.append(String.format("key %d : %s", i, generateRandomString(8)));
-            if (i < fieldCount - 1) {
-                sb.append(", ");
-            }
-        }
-        sb.append("}");
-        return sb.toString();
+        return RandomDataGenerator.generateRandomJson(fieldCount);
     }
 
     /**
@@ -491,124 +484,7 @@ public class ProducerTabController implements Initializable {
      * @return 符合Schema的随机JSON消息
      */
     private String generateRandomAvroJson(String schemaName) {
-        try {
-            SchemaManager.SchemaVersion schemaVersion = schemaManager.getSchemaVersion(schemaName);
-            if (schemaVersion == null) {
-                log("错误: 找不到Schema: " + schemaName);
-                return "{}";
-            }
-
-            org.apache.avro.Schema schema = schemaVersion.getSchema();
-            return generateRandomJsonForSchema(schema);
-        } catch (Exception e) {
-            log("生成Avro JSON消息失败: " + e.getMessage());
-            return "{}";
-        }
-    }
-
-    /**
-     * 根据Avro Schema生成随机的JSON消息
-     * @param schema Avro Schema
-     * @return 符合Schema的随机JSON消息
-     */
-    private String generateRandomJsonForSchema(org.apache.avro.Schema schema) {
-        StringBuilder sb = new StringBuilder("{");
-        List<org.apache.avro.Schema.Field> fields = schema.getFields();
-
-        for (int i = 0; i < fields.size(); i++) {
-            org.apache.avro.Schema.Field field = fields.get(i);
-            String fieldName = field.name();
-            org.apache.avro.Schema fieldSchema = field.schema();
-
-            sb.append(String.format("%s : %s", fieldName, generateRandomValueForSchema(fieldSchema)));
-
-            if (i < fields.size() - 1) {
-                sb.append(", ");
-            }
-        }
-
-        sb.append("}");
-        return sb.toString();
-    }
-
-    /**
-     * 根据Avro Schema类型生成随机值
-     * @param schema Avro Schema
-     * @return 随机值的JSON表示
-     */
-    private String generateRandomValueForSchema(org.apache.avro.Schema schema) {
-        switch (schema.getType()) {
-            case STRING:
-                return generateRandomString(8);
-            case INT:
-                return String.valueOf(random.nextInt(1000));
-            case LONG:
-                return String.valueOf(random.nextLong() % 10000);
-            case FLOAT:
-                return String.valueOf(random.nextFloat() * 1000);
-            case DOUBLE:
-                return String.valueOf(random.nextDouble() * 10000);
-            case BOOLEAN:
-                return random.nextBoolean() ? "true" : "false";
-            case NULL:
-                return "null";
-            case ARRAY:
-                return generateRandomArray(schema.getElementType());
-            case MAP:
-                return generateRandomMap(schema.getValueType());
-            case RECORD:
-                return generateRandomJsonForSchema(schema);
-            case UNION:
-                // 对于联合类型，随机选择一种类型
-                List<org.apache.avro.Schema> types = schema.getTypes();
-                if (!types.isEmpty()) {
-                    org.apache.avro.Schema selectedType = types.get(random.nextInt(types.size()));
-                    return generateRandomValueForSchema(selectedType);
-                }
-                return "null";
-            default:
-                return "null";
-        }
-    }
-
-    /**
-     * 生成随机数组
-     * @param elementSchema 元素类型
-     * @return 随机数组的JSON表示
-     */
-    private String generateRandomArray(org.apache.avro.Schema elementSchema) {
-        int size = random.nextInt(5) + 1; // 1-5个元素
-        StringBuilder sb = new StringBuilder("[");
-
-        for (int i = 0; i < size; i++) {
-            sb.append(generateRandomValueForSchema(elementSchema));
-            if (i < size - 1) {
-                sb.append(", ");
-            }
-        }
-
-        sb.append("]");
-        return sb.toString();
-    }
-
-    /**
-     * 生成随机Map
-     * @param valueSchema 值类型
-     * @return 随机Map的JSON表示
-     */
-    private String generateRandomMap(org.apache.avro.Schema valueSchema) {
-        int size = random.nextInt(3) + 1; // 1-3个键值对
-        StringBuilder sb = new StringBuilder("{");
-
-        for (int i = 0; i < size; i++) {
-            sb.append(String.format("key%d : %s", i, generateRandomValueForSchema(valueSchema)));
-            if (i < size - 1) {
-                sb.append(", ");
-            }
-        }
-
-        sb.append("}");
-        return sb.toString();
+        return RandomDataGenerator.generateRandomAvroJson(schemaName);
     }
 
     public String getTopicName() {
