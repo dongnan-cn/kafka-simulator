@@ -13,7 +13,6 @@ import javafx.scene.layout.HBox;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.Timer;
 
 import static com.nan.kafkasimulator.utils.Logger.log;
 
@@ -53,7 +52,6 @@ public class BrokerFailureController implements Initializable {
     private Button recoverAllBrokersButton;
 
     private BrokerFailureSimulator brokerFailureSimulator;
-    private Timer updateTimer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -195,7 +193,7 @@ public class BrokerFailureController implements Initializable {
      */
     private void startPeriodicUpdate() {
         // 不再需要定时刷新，只在手动操作时刷新
-        updateTimer = null;
+        // updateTimer = null;
     }
 
     /**
@@ -203,7 +201,7 @@ public class BrokerFailureController implements Initializable {
      */
     private void stopPeriodicUpdate() {
         // 不再需要定时刷新，只在手动操作时刷新
-        updateTimer = null;
+        // updateTimer = null;
     }
 
     /**
