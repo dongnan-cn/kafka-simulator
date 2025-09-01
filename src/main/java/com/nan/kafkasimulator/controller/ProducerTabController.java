@@ -1,13 +1,23 @@
 package com.nan.kafkasimulator.controller;
 
+import com.nan.kafkasimulator.ControllerRegistry;
+import com.nan.kafkasimulator.avro.SchemaManager;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import static com.nan.kafkasimulator.utils.Logger.log;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.Random;
@@ -25,8 +35,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
-
-import com.nan.kafkasimulator.ControllerRegistry;
 
 public class ProducerTabController implements Initializable {
 
@@ -59,6 +67,18 @@ public class ProducerTabController implements Initializable {
     @FXML
     private Button stopAutoSendButton;
 
+    // Avro相关控件
+    @FXML
+    private HBox avroSchemaHBox;
+    @FXML
+    private ChoiceBox<String> avroSchemaChoiceBox;
+    @FXML
+    private Button manageSchemaButton;
+    @FXML
+    private VBox avroMessageVBox;
+    @FXML
+    private TextArea avroMessageArea;
+
     private KafkaProducer<String, String> producer;
     private ScheduledExecutorService autoSendExecutor;
     private AtomicLong sentCount;
@@ -67,27 +87,58 @@ public class ProducerTabController implements Initializable {
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final Random random = new Random();
 
+    // Avro相关
+    private SchemaManager schemaManager;
+
     public ProducerTabController(String topicName) {
         this.topicName = topicName;
     }
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
+        // 初始化SchemaManager
+        schemaManager = SchemaManager.getInstance();
+
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
 
-        dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON"));
+        // 添加Avro数据类型选项
+        dataTypeChoiceBox.setItems(FXCollections.observableArrayList("String", "JSON", "Avro"));
         dataTypeChoiceBox.setValue("String");
         dataTypeChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             jsonFieldsCountField.setDisable(!"JSON".equals(newVal));
-            if ("JSON".equals(newVal)) {
+
+            // 根据数据类型显示/隐藏相关UI控件
+            if ("Avro".equals(newVal)) {
+                // 显示Avro相关控件
+                avroSchemaHBox.setVisible(true);
+                avroSchemaHBox.setManaged(true);
+                avroMessageVBox.setVisible(true);
+                avroMessageVBox.setManaged(true);
+                // 禁用普通消息区域
                 producerValueArea.setDisable(true);
-                producerValueArea.setPromptText("JSON数据将自动生成");
+                producerValueArea.setPromptText("使用Avro格式发送消息");
             } else {
+                // 隐藏Avro相关控件
+                avroSchemaHBox.setVisible(false);
+                avroSchemaHBox.setManaged(false);
+                avroMessageVBox.setVisible(false);
+                avroMessageVBox.setManaged(false);
+                // 启用普通消息区域
                 producerValueArea.setDisable(false);
-                producerValueArea.setPromptText("输入要发送的消息");
+
+                if ("JSON".equals(newVal)) {
+                    producerValueArea.setDisable(true);
+                    producerValueArea.setPromptText("JSON数据将自动生成");
+                } else {
+                    producerValueArea.setDisable(false);
+                    producerValueArea.setPromptText("输入要发送的消息");
+                }
             }
         });
+
+        // 初始化Schema选择列表
+        refreshSchemaList();
 
         sentCount = new AtomicLong(0);
         initializeProducer();
@@ -180,12 +231,35 @@ public class ProducerTabController implements Initializable {
         }
 
         String key = producerKeyField.getText();
-        String value = producerValueArea.getText();
+        String value;
+        String dataType = dataTypeChoiceBox.getValue();
 
         try {
+            if ("Avro".equals(dataType)) {
+                // 处理Avro消息
+                String schemaName = avroSchemaChoiceBox.getValue();
+                if (schemaName == null || schemaName.trim().isEmpty()) {
+                    log("错误: 请选择一个Avro Schema");
+                    return;
+                }
+
+                String avroMessage = avroMessageArea.getText();
+                if (avroMessage == null || avroMessage.trim().isEmpty()) {
+                    log("错误: 请输入Avro消息内容");
+                    return;
+                }
+
+                // 这里暂时将Avro消息作为普通字符串发送
+                // 在后续阶段中，我们将实现真正的Avro序列化
+                value = "AVRO:" + schemaName + ":" + avroMessage;
+            } else {
+                // 处理普通消息
+                value = producerValueArea.getText();
+            }
+
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
-            log(String.format("正在发送消息到 [%s]...", topicName));
+            log(String.format("正在发送%s消息到 [%s]...", dataType, topicName));
             producer.send(record, (metadata, exception) -> {
                 Platform.runLater(() -> {
                     if (exception == null) {
@@ -234,6 +308,12 @@ public class ProducerTabController implements Initializable {
             jsonFieldsCountField.setDisable(true);
             onSendButtonClick.setDisable(true);
 
+            // 如果是Avro类型，还需要禁用Avro相关控件
+            if ("Avro".equals(dataType)) {
+                avroSchemaChoiceBox.setDisable(true);
+                avroMessageArea.setDisable(true);
+            }
+
             log(String.format("开始向 Topic: %s 自动发送 %s msg/s...", topicName, messagesPerSecond));
 
             // 重置计数器
@@ -247,6 +327,14 @@ public class ProducerTabController implements Initializable {
 
                 if ("JSON".equals(dataType)) {
                     value = generateRandomJson(jsonFieldsCount);
+                } else if ("Avro".equals(dataType)) {
+                    // 处理Avro消息
+                    String schemaName = avroSchemaChoiceBox.getValue();
+                    String avroMessage = avroMessageArea.getText();
+
+                    // 这里暂时将Avro消息作为普通字符串发送
+                    // 在后续阶段中，我们将实现真正的Avro序列化
+                    value = "AVRO:" + schemaName + ":" + avroMessage;
                 } else { // String
                     value = generateRandomString(20); // 默认字符串长度为20
                 }
@@ -289,13 +377,22 @@ public class ProducerTabController implements Initializable {
             messagesPerSecondField.setDisable(false);
             dataTypeChoiceBox.setDisable(false);
             keyLengthField.setDisable(false);
-            if ("JSON".equals(dataTypeChoiceBox.getValue())) {
+
+            String dataType = dataTypeChoiceBox.getValue();
+            if ("JSON".equals(dataType)) {
                 jsonFieldsCountField.setDisable(false);
                 producerValueArea.setDisable(true);
+            } else if ("Avro".equals(dataType)) {
+                // 恢复Avro相关控件状态
+                avroSchemaChoiceBox.setDisable(false);
+                avroMessageArea.setDisable(false);
+                producerValueArea.setDisable(true);
+                jsonFieldsCountField.setDisable(true);
             } else {
                 jsonFieldsCountField.setDisable(true);
                 producerValueArea.setDisable(false);
             }
+
             onSendButtonClick.setDisable(false);
             Platform.runLater(() -> sentCountLabel.setText("已发送: 0"));
         }
@@ -370,5 +467,42 @@ public class ProducerTabController implements Initializable {
 
     public String getTopicName() {
         return topicName;
+    }
+
+    /**
+     * 刷新Schema列表
+     */
+    private void refreshSchemaList() {
+        avroSchemaChoiceBox.setItems(FXCollections.observableArrayList(schemaManager.getAllSchemas().keySet()));
+        if (!avroSchemaChoiceBox.getItems().isEmpty()) {
+            avroSchemaChoiceBox.setValue(avroSchemaChoiceBox.getItems().get(0));
+        }
+    }
+
+    /**
+     * 打开Schema管理对话框
+     */
+    @FXML
+    private void onManageSchemaButtonClick() {
+        try {
+            // 加载FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/nan/kafkasimulator/fxml/schema-management.fxml"));
+            Parent root = loader.load();
+
+            // 创建对话框
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Schema管理");
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.setScene(new Scene(root));
+
+            // 显示对话框并等待关闭
+            dialogStage.showAndWait();
+
+            // 对话框关闭后刷新Schema列表
+            refreshSchemaList();
+        } catch (IOException e) {
+            log("打开Schema管理对话框失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

@@ -42,6 +42,19 @@
             <Label text="数据类型:" />
             <ChoiceBox fx:id="dataTypeChoiceBox" prefWidth="120.0" />
         </HBox>
+
+        <!-- Avro Schema选择区域 -->
+        <HBox fx:id="avroSchemaHBox" spacing="10.0" alignment="CENTER_LEFT" visible="false" managed="false">
+            <Label text="Avro Schema:" />
+            <ChoiceBox fx:id="avroSchemaChoiceBox" prefWidth="150.0" />
+            <Button fx:id="manageSchemaButton" onAction="#onManageSchemaButtonClick" text="管理Schema" />
+        </HBox>
+
+        <!-- Avro消息编辑区域 -->
+        <VBox fx:id="avroMessageVBox" spacing="10.0" visible="false" managed="false">
+            <Label text="Avro消息内容 (JSON格式)" />
+            <TextArea fx:id="avroMessageArea" promptText="输入符合选定Schema的JSON消息" VBox.vgrow="ALWAYS" />
+        </VBox>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
             <Label fx:id="sentCountLabel" text="已发送: 0" />
         </HBox>
