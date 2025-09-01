@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.nan.kafkasimulator.monitoring.ui.MonitoringDashboardController"
+      spacing="20.0">
+   <padding>
+      <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+   </padding>
+
+    <Label text="Kafka Monitoring Dashboard" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+    <!-- 吞吐量图表 -->
+    <TitledPane fx:id="throughputPane" text="Throughput Monitoring" collapsible="false" expanded="true">
+        <VBox spacing="10.0">
+            <HBox spacing="20.0">
+                <!-- 系统总体吞吐量 -->
+                <VBox spacing="5.0">
+                    <Label text="System Throughput" style="-fx-font-weight: bold;"/>
+                    <LineChart fx:id="systemThroughputChart" prefWidth="400" prefHeight="250">
+                        <xAxis>
+                            <CategoryAxis label="Time"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Messages/sec"/>
+                        </yAxis>
+                    </LineChart>
+                </VBox>
+
+                <!-- Topic吞吐量对比 -->
+                <VBox spacing="5.0">
+                    <Label text="Topic Throughput" style="-fx-font-weight: bold;"/>
+                    <BarChart fx:id="topicThroughputChart" prefWidth="400" prefHeight="250">
+                        <xAxis>
+                            <CategoryAxis label="Topic"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Messages/sec"/>
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+            </HBox>
+        </VBox>
+    </TitledPane>
+
+    <!-- 延迟图表 -->
+    <TitledPane fx:id="latencyPane" text="Latency Monitoring" collapsible="false" expanded="true">
+        <VBox spacing="10.0">
+            <HBox spacing="20.0">
+                <!-- 端到端延迟 -->
+                <VBox spacing="5.0">
+                    <Label text="End-to-End Latency" style="-fx-font-weight: bold;"/>
+                    <LineChart fx:id="e2eLatencyChart" prefWidth="400" prefHeight="250">
+                        <xAxis>
+                            <CategoryAxis label="Time"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Latency (ms)"/>
+                        </yAxis>
+                    </LineChart>
+                </VBox>
+
+                <!-- 延迟分布 -->
+                <VBox spacing="5.0">
+                    <Label text="Latency Distribution" style="-fx-font-weight: bold;"/>
+                    <BarChart fx:id="latencyDistributionChart" prefWidth="400" prefHeight="250">
+                        <xAxis>
+                            <CategoryAxis label="Latency Range"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Count"/>
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+            </HBox>
+        </VBox>
+    </TitledPane>
+
+    <!-- Broker指标 -->
+    <TitledPane fx:id="brokerMetricsPane" text="Broker Metrics" collapsible="false" expanded="true">
+        <VBox spacing="10.0">
+            <ScrollPane fitToWidth="true">
+                <GridPane fx:id="brokerMetricsGrid" hgap="10" vgap="5">
+                    <!-- 内容将在控制器中动态生成 -->
+                </GridPane>
+            </ScrollPane>
+        </VBox>
+    </TitledPane>
+
+</VBox>

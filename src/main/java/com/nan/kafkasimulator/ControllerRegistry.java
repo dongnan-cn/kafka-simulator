@@ -5,6 +5,7 @@ import com.nan.kafkasimulator.controller.ConsumerController;
 import com.nan.kafkasimulator.controller.ProducerController;
 import com.nan.kafkasimulator.controller.TopicManagementController;
 import com.nan.kafkasimulator.controller.BrokerFailureController;
+import com.nan.kafkasimulator.monitoring.ui.MonitoringDashboardController;
 
 public class ControllerRegistry {
 
@@ -14,6 +15,7 @@ public class ControllerRegistry {
     private static ProducerController producerController;
     private static ConsumerController consumerController;
     private static BrokerFailureController brokerFailureController;
+    private static MonitoringDashboardController monitoringDashboardController;
 
     public static ProducerController getProducerController() {
         return producerController;
@@ -53,5 +55,13 @@ public class ControllerRegistry {
 
     public static void setBrokerFailureController(BrokerFailureController brokerFailureController) {
         ControllerRegistry.brokerFailureController = brokerFailureController;
+    }
+
+    public static MonitoringDashboardController getMonitoringDashboardController() {
+        return monitoringDashboardController;
+    }
+
+    public static void setMonitoringDashboardController(MonitoringDashboardController monitoringDashboardController) {
+        ControllerRegistry.monitoringDashboardController = monitoringDashboardController;
     }
 }

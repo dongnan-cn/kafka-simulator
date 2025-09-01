@@ -44,6 +44,12 @@
                               source="fxml/broker-failure-tab-content.fxml" />
                         </content>
                      </Tab>
+                     <Tab text="Monitoring Dashboard">
+                        <content>
+                           <fx:include fx:id="monitoringDashboard"
+                              source="monitoring/ui/fxml/monitoring-dashboard.fxml" />
+                        </content>
+                     </Tab>
                   </tabs>
                </TabPane>
                <fx:include fx:id="logManagement" source="fxml/log-management.fxml" />

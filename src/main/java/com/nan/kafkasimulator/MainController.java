@@ -10,6 +10,7 @@ import com.nan.kafkasimulator.controller.LogController;
 import com.nan.kafkasimulator.controller.ProducerController;
 import com.nan.kafkasimulator.controller.TopicManagementController;
 import com.nan.kafkasimulator.controller.BrokerFailureController;
+import com.nan.kafkasimulator.monitoring.ui.MonitoringDashboardController;
 import com.nan.kafkasimulator.utils.Logger;
 
 import java.net.URL;
@@ -35,6 +36,9 @@ public class MainController implements Initializable {
     
     @FXML
     private BrokerFailureController brokerFailureController;
+    
+    @FXML
+    private MonitoringDashboardController monitoringDashboardController;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -43,6 +47,7 @@ public class MainController implements Initializable {
         ControllerRegistry.setProducerController(producerController);
         ControllerRegistry.setConsumerController(consumerController);
         ControllerRegistry.setBrokerFailureController(brokerFailureController);
+        ControllerRegistry.setMonitoringDashboardController(monitoringDashboardController);
 
         setAllControlsDisable(true);
 
@@ -77,6 +82,11 @@ public class MainController implements Initializable {
                 if (brokerFailureController != null) {
                     brokerFailureController.setConnected(true);
                 }
+                
+                // Set connection status for Monitoring dashboard controller
+                if (monitoringDashboardController != null) {
+                    monitoringDashboardController.setConnected(true);
+                }
             } else {
                 setAllControlsDisable(true);
                 connectionManagementController.setStatusConnected(false);
@@ -85,6 +95,11 @@ public class MainController implements Initializable {
                 // Set connection status for Broker failure controller
                 if (brokerFailureController != null) {
                     brokerFailureController.setConnected(false);
+                }
+                
+                // Set connection status for Monitoring dashboard controller
+                if (monitoringDashboardController != null) {
+                    monitoringDashboardController.setConnected(false);
                 }
             }
         });
@@ -121,6 +136,11 @@ public class MainController implements Initializable {
         // Clean up Broker failure controller
         if (brokerFailureController != null) {
             brokerFailureController.cleanup();
+        }
+        
+        // Clean up Monitoring dashboard controller
+        if (monitoringDashboardController != null) {
+            monitoringDashboardController.cleanup();
         }
 
         Logger.log("All resources have been released.");
