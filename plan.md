@@ -42,10 +42,10 @@
 
 ### 4. 进阶功能 (待定)
 
-- [ ] 分区可视化展示。
-- [ ] 实时吞吐量和延迟监控。
-- [ ] 消费者组负载均衡可视化。
-- [ ] 消息浏览功能。
+- [x] 分区可视化展示。
+- [x] 实时吞吐量和延迟监控。
+- [x] 消费者组负载均衡可视化。
+- [x] 消息浏览功能。
 
 ---
 
@@ -111,35 +111,83 @@
 - [x] 设计 MultiTopicProducerController 和 TopicProducerController 控制器类
 
 #### 7.2 创建数据模型
-- [ ] 创建 TopicProducerConfig 类，封装生产者配置
-- [ ] 创建 TopicProducer 类，封装每个 Topic 的生产者和相关状态
-- [ ] 实现生产者的初始化、配置更新和关闭方法
+- [x] 创建 TopicProducerConfig 类，封装生产者配置
+- [x] 创建 TopicProducer 类，封装每个 Topic 的生产者和相关状态
+- [x] 实现生产者的初始化、配置更新和关闭方法
 
 #### 7.3 创建 FXML 文件
-- [ ] 创建 multi-topic-producer.fxml，包含 TabPane 和添加/删除 Topic 的按钮
-- [ ] 创建 topic-producer.fxml，作为单个 Topic 的生产者配置界面（基于现有的 producer-management.fxml 修改）
+- [x] 创建 multi-topic-producer.fxml，包含 TabPane 和添加/删除 Topic 的按钮
+- [x] 创建 topic-producer.fxml，作为单个 Topic 的生产者配置界面（基于现有的 producer-management.fxml 修改）
 
 #### 7.4 实现控制器
-- [ ] 实现 MultiTopicProducerController 类，管理多个 Topic 的 Tab
-  - [ ] 实现 addTopicTab 方法，添加新的 Topic Tab
-  - [ ] 实现 removeTopicTab 方法，移除 Topic Tab
-  - [ ] 实现 getTopicProducer 方法，获取指定 Topic 的生产者
-- [ ] 实现 TopicProducerController 类，控制单个 Topic 的生产者
-  - [ ] 实现消息发送方法
-  - [ ] 实现生产者配置更新方法
-  - [ ] 实现自动发送开始和停止方法
+- [x] 实现 MultiTopicProducerController 类，管理多个 Topic 的 Tab
+  - [x] 实现 addTopicTab 方法，添加新的 Topic Tab
+  - [x] 实现 removeTopicTab 方法，移除 Topic Tab
+  - [x] 实现 getTopicProducer 方法，获取指定 Topic 的生产者
+- [x] 实现 TopicProducerController 类，控制单个 Topic 的生产者
+  - [x] 实现消息发送方法
+  - [x] 实现生产者配置更新方法
+  - [x] 实现自动发送开始和停止方法
 
 #### 7.5 集成到主应用
-- [ ] 修改 MainController，集成 MultiTopicProducerController
-- [ ] 更新 main-view.fxml，替换现有的生产者面板为多 Tab 生产者面板
-- [ ] 更新 ControllerRegistry，添加对 MultiTopicProducerController 的支持
+- [x] 修改 MainController，集成 MultiTopicProducerController
+- [x] 更新 main-view.fxml，替换现有的生产者面板为多 Tab 生产者面板
+- [x] 更新 ControllerRegistry，添加对 MultiTopicProducerController 的支持
 
 #### 7.6 测试与优化
-- [ ] 测试多 Topic 生产者的基本功能
-- [ ] 测试不同 Topic 之间的配置隔离
-- [ ] 测试同时向多个 Topic 发送消息的功能
-- [ ] 优化 UI 交互和用户体验
-- [ ] 添加错误处理和日志记录
+- [x] 测试多 Topic 生产者的基本功能
+- [x] 测试不同 Topic 之间的配置隔离
+- [x] 测试同时向多个 Topic 发送消息的功能
+- [x] 优化 UI 交互和用户体验
+- [x] 添加错误处理和日志记录
+
+### 第八阶段：消费者组手动提交偏移量功能
+
+#### 8.1 设计与规划
+- [x] 确定手动提交偏移量的实现方案
+- [x] 设计消费者组面板中的手动提交按钮
+- [x] 设计线程安全的手动提交机制
+
+#### 8.2 UI 实现
+- [x] 在消费者组面板中添加手动提交按钮
+- [x] 根据autoCommit参数控制按钮的可见性
+- [x] 添加按钮事件处理
+
+#### 8.3 后端实现
+- [x] 在ConsumerInstance中添加手动提交方法
+- [x] 实现线程安全的手动提交机制
+- [x] 在ConsumerGroupManager中添加批量提交方法
+- [x] 添加日志记录和错误处理
+
+#### 8.4 测试与优化
+- [x] 测试手动提交功能的基本操作
+- [x] 测试线程安全性
+- [x] 测试与自动提交的兼容性
+- [x] 优化用户体验和错误提示
+
+### 第九阶段：支持 Avro 消息类型（规划中）
+
+#### 9.1 设计与规划
+- [ ] 确定Avro支持的实现方案
+- [ ] 设计UI界面和用户交互流程
+- [ ] 设计Schema管理机制
+
+#### 9.2 UI 实现
+- [ ] 在自动发送设置中添加Avro类型选项
+- [ ] 实现Schema输入和编辑界面
+- [ ] 实现Schema Registry连接配置界面
+
+#### 9.3 后端实现
+- [ ] 实现Avro序列化器
+- [ ] 实现Schema管理功能
+- [ ] 实现Schema验证功能
+- [ ] 集成Schema Registry（可选）
+
+#### 9.4 测试与优化
+- [ ] 测试Avro消息的发送和接收
+- [ ] 测试Schema验证功能
+- [ ] 测试与Schema Registry的集成
+- [ ] 优化性能和用户体验
 
 ---
 
