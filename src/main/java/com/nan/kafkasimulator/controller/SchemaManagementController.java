@@ -46,7 +46,6 @@ public class SchemaManagementController implements Initializable {
     private SchemaManager schemaManager;
     private ObservableList<String> schemaNames;
     private boolean isNewSchema = true;
-    private String selectedSchemaName = null;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -87,7 +86,6 @@ public class SchemaManagementController implements Initializable {
      * @param schemaName Schema名称
      */
     private void loadSchema(String schemaName) {
-        selectedSchemaName = schemaName;
         SchemaManager.SchemaVersion version = schemaManager.getSchemaVersion(schemaName);
 
         if (version != null) {
@@ -122,7 +120,6 @@ public class SchemaManagementController implements Initializable {
         schemaContentArea.clear();
         validationResultLabel.setText("");
         isNewSchema = true;
-        selectedSchemaName = null;
         schemaListView.getSelectionModel().clearSelection();
         updateButtonStates();
     }

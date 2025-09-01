@@ -244,5 +244,18 @@ public class SchemaManager {
         public int getVersion() {
             return version;
         }
+
+        /**
+         * 获取Schema对象
+         * @return Schema对象
+         */
+        public Schema getSchema() {
+            try {
+                Schema.Parser parser = new Schema.Parser();
+                return parser.parse(schemaJson);
+            } catch (Exception e) {
+                throw new RuntimeException("解析Schema失败: " + e.getMessage(), e);
+            }
+        }
     }
 }

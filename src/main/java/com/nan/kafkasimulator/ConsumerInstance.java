@@ -86,10 +86,25 @@ public class ConsumerInstance implements Runnable {
                     log("消费者实例 '" + instanceId + "' 收到 " + records.count() + " 条消息。");
                     Platform.runLater(() -> {
                         for (ConsumerRecord<String, String> record : records) {
+                            String value = record.value();
+
+                            // 检查是否是Avro消息（已转换为JSON格式）
+                            String messageType = "普通";
+                            if (value != null && value.startsWith("{") && value.endsWith("}")) {
+                                try {
+                                    // 尝试解析为JSON，如果是有效的JSON，则可能是Avro消息转换后的结果
+                                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    mapper.readTree(value);
+                                    messageType = "Avro";
+                                } catch (Exception e) {
+                                    // 不是有效的JSON，当作普通消息处理
+                                }
+                            }
+
                             String message = String.format(
-                                    "消费者: %s | Topic: %s | 分区: %d | 偏移量: %d | Key: %s | Value: %s%n",
-                                    instanceId, record.topic(), record.partition(), record.offset(), record.key(),
-                                    record.value());
+                                    "消费者: %s | Topic: %s | 分区: %d | 偏移量: %d | 类型: %s | Key: %s | Value: %s%n",
+                                    instanceId, record.topic(), record.partition(), record.offset(), 
+                                    messageType, record.key(), value);
                             messagesArea.appendText(message);
                             messagesArea.setScrollTop(Double.MAX_VALUE);
                         }

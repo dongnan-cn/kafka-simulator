@@ -78,7 +78,10 @@ public class ConsumerGroupManager {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+
+        // 检查是否需要使用Avro反序列化器
+        // 这里我们暂时使用字符串反序列化器，后续可以根据Topic配置动态选择
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "com.nan.kafkasimulator.avro.AvroDeserializer");
         // 禁用Kafka的自动提交，使用我们自己的定时提交机制
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         // 设置自定义属性，以便ConsumerInstance可以读取

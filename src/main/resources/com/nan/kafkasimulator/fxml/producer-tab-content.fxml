@@ -48,6 +48,7 @@
             <Label text="Avro Schema:" />
             <ChoiceBox fx:id="avroSchemaChoiceBox" prefWidth="150.0" />
             <Button fx:id="manageSchemaButton" onAction="#onManageSchemaButtonClick" text="管理Schema" />
+            <Button fx:id="generateMessageButton" onAction="#onGenerateMessageButtonClick" text="生成随机消息" />
         </HBox>
 
         <!-- Avro消息编辑区域 -->

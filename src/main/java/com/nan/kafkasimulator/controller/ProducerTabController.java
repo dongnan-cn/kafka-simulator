@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -74,6 +75,8 @@ public class ProducerTabController implements Initializable {
     private ChoiceBox<String> avroSchemaChoiceBox;
     @FXML
     private Button manageSchemaButton;
+    @FXML
+    private Button generateMessageButton;
     @FXML
     private VBox avroMessageVBox;
     @FXML
@@ -175,7 +178,15 @@ public class ProducerTabController implements Initializable {
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 ControllerRegistry.getConnectionManagerController().getBootstrapServers());
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        // 根据选择的数据类型决定使用哪种序列化器
+        String dataType = dataTypeChoiceBox.getValue();
+        if ("Avro".equals(dataType)) {
+            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "com.nan.kafkasimulator.avro.AvroSerializer");
+        } else {
+            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        }
+
         producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
         producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText().isEmpty() ? "0" : batchSizeField.getText()));
         producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText().isEmpty() ? "0" : lingerMsField.getText()));
@@ -249,8 +260,9 @@ public class ProducerTabController implements Initializable {
                     return;
                 }
 
-                // 这里暂时将Avro消息作为普通字符串发送
-                // 在后续阶段中，我们将实现真正的Avro序列化
+                // 使用Avro序列化器发送消息
+                // 格式为: AVRO:schemaName:jsonContent
+                // 序列化器会将其转换为真正的Avro二进制格式
                 value = "AVRO:" + schemaName + ":" + avroMessage;
             } else {
                 // 处理普通消息
@@ -330,10 +342,18 @@ public class ProducerTabController implements Initializable {
                 } else if ("Avro".equals(dataType)) {
                     // 处理Avro消息
                     String schemaName = avroSchemaChoiceBox.getValue();
-                    String avroMessage = avroMessageArea.getText();
+                    String avroMessage;
 
-                    // 这里暂时将Avro消息作为普通字符串发送
-                    // 在后续阶段中，我们将实现真正的Avro序列化
+                    // 如果消息区域为空，则根据Schema自动生成随机消息
+                    if (avroMessageArea.getText() == null || avroMessageArea.getText().trim().isEmpty()) {
+                        avroMessage = generateRandomAvroJson(schemaName);
+                    } else {
+                        avroMessage = avroMessageArea.getText();
+                    }
+
+                    // 使用Avro序列化器发送消息
+                    // 格式为: AVRO:schemaName:jsonContent
+                    // 序列化器会将其转换为真正的Avro二进制格式
                     value = "AVRO:" + schemaName + ":" + avroMessage;
                 } else { // String
                     value = generateRandomString(20); // 默认字符串长度为20
@@ -465,6 +485,132 @@ public class ProducerTabController implements Initializable {
         return sb.toString();
     }
 
+    /**
+     * 根据Avro Schema生成随机的JSON消息
+     * @param schemaName Schema名称
+     * @return 符合Schema的随机JSON消息
+     */
+    private String generateRandomAvroJson(String schemaName) {
+        try {
+            SchemaManager.SchemaVersion schemaVersion = schemaManager.getSchemaVersion(schemaName);
+            if (schemaVersion == null) {
+                log("错误: 找不到Schema: " + schemaName);
+                return "{}";
+            }
+
+            org.apache.avro.Schema schema = schemaVersion.getSchema();
+            return generateRandomJsonForSchema(schema);
+        } catch (Exception e) {
+            log("生成Avro JSON消息失败: " + e.getMessage());
+            return "{}";
+        }
+    }
+
+    /**
+     * 根据Avro Schema生成随机的JSON消息
+     * @param schema Avro Schema
+     * @return 符合Schema的随机JSON消息
+     */
+    private String generateRandomJsonForSchema(org.apache.avro.Schema schema) {
+        StringBuilder sb = new StringBuilder("{");
+        List<org.apache.avro.Schema.Field> fields = schema.getFields();
+
+        for (int i = 0; i < fields.size(); i++) {
+            org.apache.avro.Schema.Field field = fields.get(i);
+            String fieldName = field.name();
+            org.apache.avro.Schema fieldSchema = field.schema();
+
+            sb.append(String.format("%s : %s", fieldName, generateRandomValueForSchema(fieldSchema)));
+
+            if (i < fields.size() - 1) {
+                sb.append(", ");
+            }
+        }
+
+        sb.append("}");
+        return sb.toString();
+    }
+
+    /**
+     * 根据Avro Schema类型生成随机值
+     * @param schema Avro Schema
+     * @return 随机值的JSON表示
+     */
+    private String generateRandomValueForSchema(org.apache.avro.Schema schema) {
+        switch (schema.getType()) {
+            case STRING:
+                return generateRandomString(8);
+            case INT:
+                return String.valueOf(random.nextInt(1000));
+            case LONG:
+                return String.valueOf(random.nextLong() % 10000);
+            case FLOAT:
+                return String.valueOf(random.nextFloat() * 1000);
+            case DOUBLE:
+                return String.valueOf(random.nextDouble() * 10000);
+            case BOOLEAN:
+                return random.nextBoolean() ? "true" : "false";
+            case NULL:
+                return "null";
+            case ARRAY:
+                return generateRandomArray(schema.getElementType());
+            case MAP:
+                return generateRandomMap(schema.getValueType());
+            case RECORD:
+                return generateRandomJsonForSchema(schema);
+            case UNION:
+                // 对于联合类型，随机选择一种类型
+                List<org.apache.avro.Schema> types = schema.getTypes();
+                if (!types.isEmpty()) {
+                    org.apache.avro.Schema selectedType = types.get(random.nextInt(types.size()));
+                    return generateRandomValueForSchema(selectedType);
+                }
+                return "null";
+            default:
+                return "null";
+        }
+    }
+
+    /**
+     * 生成随机数组
+     * @param elementSchema 元素类型
+     * @return 随机数组的JSON表示
+     */
+    private String generateRandomArray(org.apache.avro.Schema elementSchema) {
+        int size = random.nextInt(5) + 1; // 1-5个元素
+        StringBuilder sb = new StringBuilder("[");
+
+        for (int i = 0; i < size; i++) {
+            sb.append(generateRandomValueForSchema(elementSchema));
+            if (i < size - 1) {
+                sb.append(", ");
+            }
+        }
+
+        sb.append("]");
+        return sb.toString();
+    }
+
+    /**
+     * 生成随机Map
+     * @param valueSchema 值类型
+     * @return 随机Map的JSON表示
+     */
+    private String generateRandomMap(org.apache.avro.Schema valueSchema) {
+        int size = random.nextInt(3) + 1; // 1-3个键值对
+        StringBuilder sb = new StringBuilder("{");
+
+        for (int i = 0; i < size; i++) {
+            sb.append(String.format("key%d : %s", i, generateRandomValueForSchema(valueSchema)));
+            if (i < size - 1) {
+                sb.append(", ");
+            }
+        }
+
+        sb.append("}");
+        return sb.toString();
+    }
+
     public String getTopicName() {
         return topicName;
     }
@@ -504,5 +650,21 @@ public class ProducerTabController implements Initializable {
             log("打开Schema管理对话框失败: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 生成随机消息按钮点击事件处理
+     */
+    @FXML
+    private void onGenerateMessageButtonClick() {
+        String schemaName = avroSchemaChoiceBox.getValue();
+        if (schemaName == null || schemaName.trim().isEmpty()) {
+            log("错误: 请先选择一个Avro Schema");
+            return;
+        }
+
+        String randomJson = generateRandomAvroJson(schemaName);
+        avroMessageArea.setText(randomJson);
+        log("已根据Schema '" + schemaName + "' 生成随机JSON消息");
     }
 }
