@@ -17,7 +17,7 @@ import java.util.ResourceBundle;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * 消费者组面板控制器，负责管理单个消费者组的UI和交互
+ * Consumer group panel controller, responsible for managing UI and interaction of a single consumer group
  */
 public class ConsumerGroupPanelController implements Initializable {
     @FXML
@@ -47,14 +47,14 @@ public class ConsumerGroupPanelController implements Initializable {
     }
 
     /**
-     * 创建一个新的消费者组面板
-     * @param groupId 消费者组ID
-     * @param topics 订阅的Topic列表
-     * @param autoCommit 是否自动提交偏移量
-     * @param autoCommitInterval 自动提交间隔（毫秒）
-     * @param bootstrapServers Kafka服务器地址
+     * Create a new consumer group panel
+     * @param groupId Consumer group ID
+     * @param topics List of subscribed topics
+     * @param autoCommit Whether to auto commit offsets
+     * @param autoCommitInterval Auto commit interval (milliseconds)
+     * @param bootstrapServers Kafka server address
      * @param adminClient Kafka AdminClient
-     * @return 消费者组面板控制器
+     * @return Consumer group panel controller
      */
     public static ConsumerGroupPanelController create(String groupId, java.util.List<String> topics,
             boolean autoCommit, String autoCommitInterval, String bootstrapServers, AdminClient adminClient) {
@@ -64,33 +64,33 @@ public class ConsumerGroupPanelController implements Initializable {
             loader.load();
             ConsumerGroupPanelController controller = loader.getController();
 
-            // 初始化消费者组管理器
+            // Initialize consumer group manager
             controller.consumerGroupManager = new ConsumerGroupManager(
                     groupId, topics, autoCommit, autoCommitInterval, bootstrapServers,
                     controller.messageTextArea);
 
-            // 设置消费者组ID
+            // Set consumer group ID
             controller.consumerGroupIdLabel.setText(groupId);
 
-            // 设置AdminClient
+            // Set AdminClient
             controller.adminClient = adminClient;
 
-            // 根据autoCommit参数控制手动提交按钮的可见性
+            // Control visibility of manual commit button based on autoCommit parameter
             controller.manualCommitButton.setVisible(!autoCommit);
 
-            // 启动消费者组
+            // Start consumer group
             controller.consumerGroupManager.start(1);
 
             return controller;
         } catch (IOException e) {
-            log("创建消费者组面板失败: " + e.getMessage());
+            log("Failed to create consumer group panel: " + e.getMessage());
             return null;
         }
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 绑定按钮事件
+        // Bind button events
         stopConsumerGroupButton.setOnAction(event -> {
             consumerGroupManager.pauseAll();
             stopConsumerGroupButton.setDisable(true);
@@ -117,72 +117,72 @@ public class ConsumerGroupPanelController implements Initializable {
     }
 
     /**
-     * 显示分区分配对话框
+     * Show partition assignment dialog
      */
     private void showPartitionAssignmentDialog() {
         try {
-            // 加载分区分配对话框的FXML
+            // Load FXML for partition assignment dialog
             URL fxmlUrl = getClass().getResource("/com/nan/kafkasimulator/fxml/partition-assignment-dialog.fxml");
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             DialogPane dialogPane = loader.load();
-            // 获取控制器
+            // Get controller
             PartitionAssignmentDialogController controller = loader.getController();
 
-            // 设置消费者组ID
+            // Set consumer group ID
             controller.setConsumerGroupId(consumerGroupIdLabel.getText());
 
-            // 创建对话框
+            // Create dialog
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);
-            dialog.setTitle("分区分配信息");
+            dialog.setTitle("Partition Assignment Information");
 
-            // 在对话框显示后立即获取分区分配信息
+            // Get partition assignment information immediately after dialog is shown
             dialog.setOnShown(event -> {
-                // 获取分区分配信息并显示
+                // Get and display partition assignment information
                 consumerGroupManager.showPartitionAssignments(adminClient, controller.getPartitionAssignmentTextArea());
             });
 
-            // 显示对话框
+            // Show dialog
             dialog.showAndWait();
         } catch (IOException e) {
             e.printStackTrace();
-            log("显示分区分配对话框失败: " + e.getMessage());
+            log("Failed to show partition assignment dialog: " + e.getMessage());
         }
     }
 
     /**
-     * 获取消费者组面板
-     * @return 消费者组面板
+     * Get consumer group panel
+     * @return Consumer group panel
      */
     public VBox getPanel() {
         return consumerGroupPanel;
     }
 
     /**
-     * 获取消费者组ID
-     * @return 消费者组ID
+     * Get consumer group ID
+     * @return Consumer group ID
      */
     public String getGroupId() {
         return consumerGroupManager.getGroupId();
     }
 
     /**
-     * 获取消费者组管理器
-     * @return 消费者组管理器
+     * Get consumer group manager
+     * @return Consumer group manager
      */
     public ConsumerGroupManager getConsumerGroupManager() {
         return consumerGroupManager;
     }
 
     /**
-     * 停止消费者组
+     * Stop consumer group
      */
     public void stop() {
         consumerGroupManager.stopAll();
     }
 
     /**
-     * 设置AdminClient
+     * Set AdminClient
      * @param adminClient Kafka AdminClient
      */
     public void setAdminClient(AdminClient adminClient) {

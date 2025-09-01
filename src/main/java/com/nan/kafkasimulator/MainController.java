@@ -46,17 +46,17 @@ public class MainController implements Initializable {
 
         setAllControlsDisable(true);
 
-        // 初始状态，连接按钮可用，断开按钮不可用
+        // Initial state, connect button available, disconnect button unavailable
         connectionManagementController.setStatusConnected(false);
 
-        // 初始化管理器类
+        // Initialize manager classes
         connectionManagementController.setOnConnectionStateChanged(this::onConnectionStateChanged);
     }
 
     /**
-     * 连接状态变化时的回调函数
+     * Callback function when connection state changes
      * 
-     * @param isConnected 是否已连接
+     * @param isConnected Whether connected
      */
     private void onConnectionStateChanged(boolean isConnected) {
         javafx.application.Platform.runLater(() -> {
@@ -73,7 +73,7 @@ public class MainController implements Initializable {
                 connectionManagementController.setStatusConnected(true);
                 producerController.setStatusOnConnectionChanged(true);
                 
-                // 设置Broker故障控制器的连接状态
+                // Set connection status for Broker failure controller
                 if (brokerFailureController != null) {
                     brokerFailureController.setConnected(true);
                 }
@@ -82,7 +82,7 @@ public class MainController implements Initializable {
                 connectionManagementController.setStatusConnected(false);
                 producerController.setStatusOnConnectionChanged(false);
                 
-                // 设置Broker故障控制器的连接状态
+                // Set connection status for Broker failure controller
                 if (brokerFailureController != null) {
                     brokerFailureController.setConnected(false);
                 }
@@ -91,9 +91,9 @@ public class MainController implements Initializable {
     }
 
     /**
-     * Topic列表更新时的回调函数
+     * Callback function when Topic list is updated
      * 
-     * @param topicNames 更新后的Topic列表
+     * @param topicNames Updated Topic list
      */
     private void onTopicsUpdated(java.util.List<String> topicNames) {
         consumerController.updateAllConsumerTopics(topicNames);
@@ -107,7 +107,7 @@ public class MainController implements Initializable {
     }
 
     public void cleanup() {
-        Logger.log("正在关闭应用程序...");
+        Logger.log("Shutting down application...");
 
         producerController.cleanup();
         if (consumerController != null) {
@@ -118,11 +118,11 @@ public class MainController implements Initializable {
             connectionManagementController.disconnect();
         }
         
-        // 清理Broker故障控制器
+        // Clean up Broker failure controller
         if (brokerFailureController != null) {
             brokerFailureController.cleanup();
         }
 
-        Logger.log("所有资源已释放。");
+        Logger.log("All resources have been released.");
     }
 }

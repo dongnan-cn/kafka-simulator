@@ -76,32 +76,32 @@ public class TopicManagementController {
             short replicationFactor = Short.parseShort(replicationFactorField.getText());
             createTopic(newTopicNameField.getText(), numPartitions, replicationFactor);
         } catch (NumberFormatException e) {
-            Logger.log("错误: 分区数和副本因子必须是有效的数字。");
+            Logger.log("Error: Number of partitions and replication factor must be valid numbers.");
         }
 
     }
 
     public void createTopic(String topicName, int numPartitions, short replicationFactor) {
         if (adminClient == null) {
-            log("错误: 请先连接到 Kafka 集群。");
+            log("Error: Please connect to Kafka cluster first.");
             return;
         }
 
         if (topicName == null || topicName.trim().isEmpty()) {
-            log("错误: Topic 名称不能为空。");
+            log("Error: Topic name cannot be empty.");
             return;
         }
 
         try {
             NewTopic newTopic = new NewTopic(topicName, numPartitions, replicationFactor);
             adminClient.createTopics(Collections.singleton(newTopic)).all().get();
-            log("成功创建 Topic: " + topicName);
+            log("Successfully created Topic: " + topicName);
             refreshTopicsList();
         } catch (NumberFormatException e) {
-            log("错误: 分区数和副本因子必须是有效的数字。");
-            showAlert("输入错误", null, "分区数和副本因子必须是有效的数字。");
+            log("Error: Number of partitions and replication factor must be valid numbers.");
+            showAlert("Input Error", null, "Number of partitions and replication factor must be valid numbers.");
         } catch (ExecutionException | InterruptedException e) {
-            log("创建 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            log("Failed to create Topic: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
     }
 
@@ -120,11 +120,11 @@ public class TopicManagementController {
 
     public void refreshTopicsList() {
         if (adminClient == null) {
-            log("错误: 请先连接到 Kafka 集群。");
+            log("Error: Please connect to Kafka cluster first.");
             return;
         }
 
-        log("正在刷新 Topic 列表...");
+        log("Refreshing Topic list...");
         try {
             Set<String> topicNames = adminClient.listTopics().names().get();
 
@@ -132,31 +132,31 @@ public class TopicManagementController {
             topicsListView.getItems().clear();
             topicsListView.getItems().addAll(topicNames);
             onTopicsUpdated.accept(new ArrayList<>(topicNames));
-            log("Topic 列表刷新成功。");
+            log("Topic list refreshed successfully.");
             // });
         } catch (ExecutionException | InterruptedException e) {
-            log("刷新 Topic 列表失败: " + e.getMessage());
+            log("Failed to refresh Topic list: " + e.getMessage());
         }
     }
 
     public void deleteTopic() {
         if (adminClient == null) {
-            log("错误: 请先连接到 Kafka 集群。");
+            log("Error: Please connect to Kafka cluster first.");
             return;
         }
 
         String selectedTopic = topicsListView.getSelectionModel().getSelectedItem();
         if (selectedTopic == null || selectedTopic.trim().isEmpty()) {
-            log("错误: 请选择一个 Topic 来删除。");
+            log("Error: Please select a Topic to delete.");
             return;
         }
 
         try {
             adminClient.deleteTopics(Collections.singleton(selectedTopic)).all().get();
-            log("成功删除 Topic: " + selectedTopic);
+            log("Successfully deleted Topic: " + selectedTopic);
             refreshTopicsList();
         } catch (ExecutionException | InterruptedException e) {
-            log("删除 Topic 失败: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            log("Failed to delete Topic: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
     }
 

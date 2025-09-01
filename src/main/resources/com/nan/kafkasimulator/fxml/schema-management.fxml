@@ -11,7 +11,7 @@
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
     <children>
-        <Label text="Schema管理" style="-fx-font-weight: bold;">
+        <Label text="Schema Management" style="-fx-font-weight: bold;">
             <font>
                 <Font size="14.0" />
             </font>
@@ -19,34 +19,34 @@
 
         <SplitPane dividerPositions="0.4" VBox.vgrow="ALWAYS">
             <items>
-                <!-- 左侧：Schema列表 -->
+                <!-- Left: Schema list -->
                 <VBox spacing="10.0">
                     <children>
                         <HBox spacing="10.0" alignment="CENTER_LEFT">
                             <children>
-                                <Button fx:id="addSchemaButton" onAction="#onAddSchemaButtonClick" text="添加Schema" />
-                                <Button fx:id="deleteSchemaButton" onAction="#onDeleteSchemaButtonClick" text="删除Schema" disable="true" />
+                                <Button fx:id="addSchemaButton" onAction="#onAddSchemaButtonClick" text="Add Schema" />
+                                <Button fx:id="deleteSchemaButton" onAction="#onDeleteSchemaButtonClick" text="Delete Schema" disable="true" />
                             </children>
                         </HBox>
                         <ListView fx:id="schemaListView" VBox.vgrow="ALWAYS" />
                     </children>
                 </VBox>
 
-                <!-- 右侧：Schema编辑区域 -->
+                <!-- Right: Schema editing area -->
                 <VBox spacing="10.0">
                     <children>
                         <HBox spacing="10.0" alignment="CENTER_LEFT">
                             <children>
-                                <Label text="Schema名称:" />
+                                <Label text="Schema Name:" />
                                 <TextField fx:id="schemaNameField" HBox.hgrow="ALWAYS" />
                             </children>
                         </HBox>
-                        <Label text="Schema内容 (JSON格式):" />
-                        <TextArea fx:id="schemaContentArea" promptText="输入Avro Schema的JSON定义" VBox.vgrow="ALWAYS" />
+                        <Label text="Schema Content (JSON format):" />
+                        <TextArea fx:id="schemaContentArea" promptText="Enter JSON definition of Avro Schema" VBox.vgrow="ALWAYS" />
                         <HBox spacing="10.0">
                             <children>
-                                <Button fx:id="saveSchemaButton" onAction="#onSaveSchemaButtonClick" text="保存Schema" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
-                                <Button fx:id="validateSchemaButton" onAction="#onValidateSchemaButtonClick" text="验证Schema" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="saveSchemaButton" onAction="#onSaveSchemaButtonClick" text="Save Schema" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="validateSchemaButton" onAction="#onValidateSchemaButtonClick" text="Validate Schema" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
                             </children>
                         </HBox>
                         <Label fx:id="validationResultLabel" text="" wrapText="true" />
@@ -57,7 +57,7 @@
 
         <HBox spacing="10.0" alignment="CENTER_RIGHT">
             <children>
-                <Button fx:id="closeButton" onAction="#onCloseButtonClick" text="关闭" />
+                <Button fx:id="closeButton" onAction="#onCloseButtonClick" text="Close" />
             </children>
         </HBox>
     </children>

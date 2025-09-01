@@ -12,7 +12,7 @@ import java.util.Random;
  * 测试数据生成工具类，使用Java Faker生成各种类型的随机数据
  */
 public class RandomDataGenerator {
-    private static final Faker faker = new Faker(Locale.CHINA); // 使用中文环境
+    private static final Faker faker = new Faker(Locale.CHINA); // Use Chinese environment
     private static final Random random = new Random();
 
     /**
@@ -24,14 +24,14 @@ public class RandomDataGenerator {
         try {
             SchemaManager.SchemaVersion schemaVersion = SchemaManager.getInstance().getSchemaVersion(schemaName);
             if (schemaVersion == null) {
-                Logger.log("错误: 找不到Schema: " + schemaName);
+                Logger.log("Error: Schema not found: " + schemaName);
                 return "{}";
             }
 
             Schema schema = schemaVersion.getSchema();
             return generateRandomJsonForSchema(schema);
         } catch (Exception e) {
-            Logger.log("生成Avro JSON消息失败: " + e.getMessage());
+            Logger.log("Failed to generate Avro JSON message: " + e.getMessage());
             return "{}";
         }
     }
@@ -99,22 +99,22 @@ public class RandomDataGenerator {
             case RECORD:
                 return generateRandomJsonForSchema(schema);
             case UNION:
-                // 对于联合类型，优先选择非null类型
+                // For union types, prefer non-null types
                 List<Schema> types = schema.getTypes();
                 if (!types.isEmpty()) {
-                    // 如果只有一个类型，直接使用它
+                    // If there's only one type, use it directly
                     if (types.size() == 1) {
                         return generateRandomValueForSchema(types.get(0), fieldName);
                     }
 
-                    // 如果有多个类型，优先选择非null类型
+                    // If there are multiple types, prefer non-null types
                     for (Schema type : types) {
                         if (type.getType() != Schema.Type.NULL) {
                             return generateRandomValueForSchema(type, fieldName);
                         }
                     }
 
-                    // 如果只有null类型，则返回null
+                    // If only null type, return null
                     return "null";
                 }
                 return "null";
@@ -129,7 +129,7 @@ public class RandomDataGenerator {
      * @return 随机数组的JSON表示
      */
     public static String generateRandomArray(Schema elementSchema) {
-        int size = random.nextInt(5) + 1; // 1-5个元素
+        int size = random.nextInt(5) + 1; // 1-5 elements
         StringBuilder sb = new StringBuilder("[");
 
         for (int i = 0; i < size; i++) {
@@ -149,7 +149,7 @@ public class RandomDataGenerator {
      * @return 随机Map的JSON表示
      */
     public static String generateRandomMap(Schema valueSchema) {
-        int size = random.nextInt(3) + 1; // 1-3个键值对
+        int size = random.nextInt(3) + 1; // 1-3 key-value pairs
         StringBuilder sb = new StringBuilder("{");
 
         for (int i = 0; i < size; i++) {

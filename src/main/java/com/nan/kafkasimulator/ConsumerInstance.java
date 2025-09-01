@@ -36,14 +36,14 @@ public class ConsumerInstance implements Runnable {
         this.topicNames = topicNames;
         this.messagesArea = messagesArea;
         this.autoCommit = Boolean.TRUE.equals(props.get("enable.auto.commit"));
-        // 安全地获取自动提交间隔，如果不存在或autoCommit为false，则使用默认值
+        // Safely get auto commit interval, use default value if it doesn't exist or autoCommit is false
         if (autoCommit && props.get("auto.commit.interval.ms") != null) {
             this.autoCommitInterval = Integer.parseInt(props.get("auto.commit.interval.ms").toString());
         } else {
-            this.autoCommitInterval = 5000; // 默认值
+            this.autoCommitInterval = 5000; // Default value
         }
 
-        // 如果启用了自动提交，设置定时提交任务
+        // If auto commit is enabled, set up scheduled commit task
         if (autoCommit) {
             setupAutoCommit();
         }
@@ -51,58 +51,58 @@ public class ConsumerInstance implements Runnable {
 
     @Override
     public void run() {
-        log("消费者实例 '" + instanceId + "' 正在启动...");
+        log("Consumer instance '" + instanceId + "' is starting...");
         try {
             consumer.subscribe(topicNames);
-            log("消费者实例 '" + instanceId + "' 已订阅 Topic: " + topicNames);
-            log("消费者实例 '" + instanceId + "' 开始轮询消息。");
+            log("Consumer instance '" + instanceId + "' subscribed to Topics: " + topicNames);
+            log("Consumer instance '" + instanceId + "' starts polling messages.");
 
             while (running.get()) {
 
                 if (paused.get()) {
-                    log("消费者实例 '" + instanceId + "' 正在等待恢复...");
-                    // 暂停 Kafka consumer，避免在恢复前继续拉取消息
+                    log("Consumer instance '" + instanceId + "' is waiting to resume...");
+                    // Pause Kafka consumer to avoid continuing to pull messages before resuming
                     consumer.pause(consumer.assignment());
-                    // 进入一个短暂的循环，等待被唤醒或恢复
+                    // Enter a short loop, waiting to be awakened or resumed
                     while (paused.get() && running.get()) {
                         try {
                             Thread.sleep(200);
                         } catch (InterruptedException e) {
-                            // 忽略，继续检查状态
+                            // Ignore, continue checking status
                         }
                     }
                     consumer.resume(consumer.assignment());
-                    log("消费者实例 '" + instanceId + "' 已恢复拉取。");
+                    log("Consumer instance '" + instanceId + "' has resumed pulling.");
                 }
 
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
-                // 检查是否有手动提交请求
+                // Check if there is a manual commit request
                 if (requestManualCommit.get()) {
                     doManualCommit();
                 }
 
                 if (!records.isEmpty()) {
-                    log("消费者实例 '" + instanceId + "' 收到 " + records.count() + " 条消息。");
+                    log("Consumer instance '" + instanceId + "' received " + records.count() + " messages.");
                     Platform.runLater(() -> {
                         for (ConsumerRecord<String, String> record : records) {
                             String value = record.value();
 
-                            // 检查是否是Avro消息（已转换为JSON格式）
-                            String messageType = "普通";
+                            // Check if it's an Avro message (already converted to JSON format)
+                            String messageType = "Normal";
                             if (value != null && value.startsWith("{") && value.endsWith("}")) {
                                 try {
-                                    // 尝试解析为JSON，如果是有效的JSON，则可能是Avro消息转换后的结果
+                                    // Try to parse as JSON, if it's valid JSON, it might be the result of Avro message conversion
                                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                                     mapper.readTree(value);
                                     messageType = "Avro";
                                 } catch (Exception e) {
-                                    // 不是有效的JSON，当作普通消息处理
+                                    // Not valid JSON, treat as normal message
                                 }
                             }
 
                             String message = String.format(
-                                    "消费者: %s | Topic: %s | 分区: %d | 偏移量: %d | 类型: %s | Key: %s | Value: %s%n",
+                                    "Consumer: %s | Topic: %s | Partition: %d | Offset: %d | Type: %s | Key: %s | Value: %s%n",
                                     instanceId, record.topic(), record.partition(), record.offset(), 
                                     messageType, record.key(), value);
                             messagesArea.appendText(message);
@@ -112,11 +112,11 @@ public class ConsumerInstance implements Runnable {
                 }
             }
         } catch (WakeupException e) {
-            log("消费者实例 '" + instanceId + "' 被唤醒并即将关闭。");
-            // 这是预期的关闭异常，忽略
+            log("Consumer instance '" + instanceId + "' was awakened and is about to close.");
+            // This is an expected shutdown exception, ignore
         } finally {
             consumer.close();
-            log("消费者实例 '" + instanceId + "' 已关闭。");
+            log("Consumer instance '" + instanceId + "' has been closed.");
         }
     }
 
@@ -126,44 +126,44 @@ public class ConsumerInstance implements Runnable {
             if (running.get() && !paused.get()) {
                 consumer.commitAsync((offsets, exception) -> {
                     if (exception == null) {
-                        log("消费者实例 '" + instanceId + "' 已自动提交偏移量: " + offsets);
+                        log("Consumer instance '" + instanceId + "' has auto-committed offsets: " + offsets);
                     } else {
-                        log("消费者实例 '" + instanceId + "' 自动提交偏移量失败: " + exception.getMessage());
+                        log("Consumer instance '" + instanceId + "' failed to auto-commit offsets: " + exception.getMessage());
                     }
                 });
             }
         }, autoCommitInterval, autoCommitInterval, TimeUnit.MILLISECONDS);
 
-        log("消费者实例 '" + instanceId + "' 已启用自动提交，提交间隔: " + autoCommitInterval + "ms");
+        log("Consumer instance '" + instanceId + "' has enabled auto commit, commit interval: " + autoCommitInterval + "ms");
     }
 
     /**
-     * 手动提交偏移量的标志位
+     * Flag for manual commit of offsets
      */
     private final AtomicBoolean requestManualCommit = new AtomicBoolean(false);
 
     /**
-     * 请求手动提交偏移量（线程安全）
+     * Request manual commit of offsets (thread-safe)
      */
     public void requestManualCommit() {
         requestManualCommit.set(true);
     }
 
     /**
-     * 执行手动提交偏移量（在消费者线程中调用）
+     * Execute manual commit of offsets (called in consumer thread)
      */
     private void doManualCommit() {
         if (running.get() && !paused.get()) {
             consumer.commitAsync((offsets, exception) -> {
                 if (exception == null) {
-                    log("消费者实例 '" + instanceId + "' 手动提交偏移量成功: " + offsets);
+                    log("Consumer instance '" + instanceId + "' manually committed offsets successfully: " + offsets);
                 } else {
-                    log("消费者实例 '" + instanceId + "' 手动提交偏移量失败: " + exception.getMessage());
+                    log("Consumer instance '" + instanceId + "' failed to manually commit offsets: " + exception.getMessage());
                 }
             });
             requestManualCommit.set(false);
         } else {
-            log("消费者实例 '" + instanceId + "' 当前无法提交偏移量（运行状态: " + running.get() + ", 暂停状态: " + paused.get() + "）");
+            log("Consumer instance '" + instanceId + "' cannot commit offsets currently (running status: " + running.get() + ", paused status: " + paused.get() + ")");
         }
     }
 
@@ -179,7 +179,7 @@ public class ConsumerInstance implements Runnable {
                 commitScheduler.shutdownNow();
             }
         }
-        consumer.wakeup(); // 中断 poll() 方法，以便线程可以退出
+        consumer.wakeup(); // Interrupt poll() method so that the thread can exit
     }
 
     public void pause() {

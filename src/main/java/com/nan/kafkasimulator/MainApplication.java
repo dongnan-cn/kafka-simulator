@@ -16,7 +16,7 @@ public class MainApplication extends Application {
         stage.setTitle("Kafka Simulator");
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
-            System.out.println("窗口关闭，正在执行清理...");
+            System.out.println("Window closing, performing cleanup...");
             controller.cleanup();
         });
         stage.show();

@@ -117,7 +117,7 @@ public class ConsumerController implements Initializable {
     public void updateAllConsumerTopics(List<String> topicNames) {
         // 添加一个检查以防万一
         if (topicCheckBoxContainer == null) {
-            log("错误：找不到 topicCheckBoxContainer VBox。");
+            log("Error: topicCheckBoxContainer VBox not found.");
             return;
         }
 
@@ -146,11 +146,11 @@ public class ConsumerController implements Initializable {
         // 获取UI元素
         String groupId = consumerGroupIdField.getText();
         if (groupId == null || groupId.trim().isEmpty()) {
-            log("错误: 消费者组 ID 不能为空。");
+            log("Error: Consumer group ID cannot be empty.");
             return;
         }
         if (activeConsumerGroups.containsKey(groupId)) {
-            log("错误: 消费组 '" + groupId + "' 已存在。");
+            log("Error: Consumer group '" + groupId + "' already exists.");
             return;
         }
 
@@ -162,7 +162,7 @@ public class ConsumerController implements Initializable {
                 .collect(java.util.stream.Collectors.toList());
 
         if (topicNames.isEmpty()) {
-            log("错误: 订阅 Topic 不能为空。");
+            log("Error: Subscription topic cannot be empty.");
             return;
         }
 
@@ -182,7 +182,7 @@ public class ConsumerController implements Initializable {
                 adminClient);
 
         if (panelController == null) {
-            log("错误: 创建消费者组面板失败。");
+            log("Error: Failed to create consumer group panel.");
             return;
         }
 
@@ -196,7 +196,7 @@ public class ConsumerController implements Initializable {
         // 更新消费者组列表
         updateConsumerGroupsList();
 
-        log("已启动消费者组 '" + groupId + "'。");
+        log("Consumer group '" + groupId + "' has been started.");
         // 清空输入框，以便于创建新的消费者组
         consumerGroupIdField.clear();
         topicCheckBoxContainer.getChildren().forEach(node -> {
@@ -235,7 +235,7 @@ public class ConsumerController implements Initializable {
                 consumerGroupPanels.remove(groupId);
             }
 
-            log("已移除消费者组 '" + groupId + "'。");
+            log("Consumer group '" + groupId + "' has been removed.");
         }
 
         // 更新列表
@@ -247,7 +247,7 @@ public class ConsumerController implements Initializable {
      */
     private void refreshConsumerGroupsList() {
         updateConsumerGroupsList();
-        log("消费者组列表已刷新。");
+        log("Consumer group list has been refreshed.");
     }
 
     /**

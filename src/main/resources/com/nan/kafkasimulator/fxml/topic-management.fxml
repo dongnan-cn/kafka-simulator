@@ -17,28 +17,28 @@
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
     <children>
-        <Label text="Topic 管理">
+        <Label text="Topic Management">
             <font>
                 <Font name="System Bold" size="12.0" />
             </font>
         </Label>
-        <Label text="创建新 Topic">
+        <Label text="Create New Topic">
             <font>
                 <Font name="System Bold" size="12.0" />
             </font>
         </Label>
-        <TextField fx:id="newTopicNameField" promptText="Topic 名称" />
+        <TextField fx:id="newTopicNameField" promptText="Topic Name" />
         <HBox alignment="CENTER_LEFT" spacing="10.0">
             <children>
-                <Label text="分区数:" />
+                <Label text="Partitions:" />
                 <TextField fx:id="numPartitionsField" prefWidth="50.0" text="1" />
-                <Label text="副本因子:" />
+                <Label text="Replication Factor:" />
                 <TextField fx:id="replicationFactorField" prefWidth="50.0" text="1" />
             </children>
         </HBox>
         <Button fx:id="onCreateTopicButtonClick" maxWidth="1.7976931348623157E308"
-            onAction="#onCreateTopicButtonClick" text="创建 Topic" />
-        <Label text="Topic 列表">
+            onAction="#onCreateTopicButtonClick" text="Create Topic" />
+        <Label text="Topic List">
             <font>
                 <Font name="System Bold" size="12.0" />
             </font>
@@ -46,9 +46,9 @@
         <HBox alignment="CENTER_LEFT" spacing="10.0">
             <children>
                 <Button fx:id="onRefreshTopicsButtonClick"
-                    onAction="#onRefreshTopicsButtonClick" text="刷新" />
+                    onAction="#onRefreshTopicsButtonClick" text="Refresh" />
                 <Button fx:id="onDeleteTopicButtonClick"
-                    onAction="#onDeleteTopicButtonClick" text="删除选中 Topic" />
+                    onAction="#onDeleteTopicButtonClick" text="Delete Selected Topic" />
             </children>
         </HBox>
         <ListView fx:id="topicsListView" VBox.vgrow="ALWAYS" />

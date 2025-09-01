@@ -101,6 +101,6 @@ public class AvroDeserializer implements Deserializer<String> {
 
     @Override
     public void close() {
-        // 清理资源
+        // placeholder
     }
 }

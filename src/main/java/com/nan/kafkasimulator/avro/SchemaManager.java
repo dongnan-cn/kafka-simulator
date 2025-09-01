@@ -10,165 +10,165 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Avro Schema管理器，负责管理所有Avro Schema的存储和检索
+ * Avro Schema manager, responsible for managing storage and retrieval of all Avro Schemas
  */
 public class SchemaManager {
 
-    // 单例实例
+    // Singleton instance
     private static final SchemaManager INSTANCE = new SchemaManager();
 
-    // Schema存储，key为Schema名称，value为Schema对象
+    // Schema storage, key is schema name, value is schema object
     private final Map<String, Schema> schemaMap = new ConcurrentHashMap<>();
 
-    // Schema版本管理，key为Schema名称，value为版本列表
+    // Schema version management, key is schema name, value is version list
     private final Map<String, SchemaVersion> schemaVersions = new ConcurrentHashMap<>();
 
-    // Schema ID生成器
+    // Schema ID generator
     private final AtomicInteger schemaIdGenerator = new AtomicInteger(1);
 
-    // 私有构造函数，确保单例
+    // Private constructor to ensure singleton
     private SchemaManager() {
-        // 初始化一些示例Schema
+        // Initialize some sample schemas
         initializeSampleSchemas();
     }
 
     /**
-     * 获取SchemaManager单例实例
-     * @return SchemaManager实例
+     * Get SchemaManager singleton instance
+     * @return SchemaManager instance
      */
     public static SchemaManager getInstance() {
         return INSTANCE;
     }
 
     /**
-     * 注册新的Schema
-     * @param schemaName Schema名称
-     * @param schemaJson Schema的JSON表示
-     * @return 注册的Schema对象
-     * @throws IllegalArgumentException 如果Schema名称已存在或Schema格式无效
+     * Register new Schema
+     * @param schemaName Schema name
+     * @param schemaJson JSON representation of Schema
+     * @return Registered Schema object
+     * @throws IllegalArgumentException If schema name already exists or schema format is invalid
      */
     public Schema registerSchema(String schemaName, String schemaJson) {
         if (schemaName == null || schemaName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Schema名称不能为空");
+            throw new IllegalArgumentException("Schema name cannot be empty");
         }
 
         if (schemaJson == null || schemaJson.trim().isEmpty()) {
-            throw new IllegalArgumentException("Schema内容不能为空");
+            throw new IllegalArgumentException("Schema content cannot be empty");
         }
 
         if (schemaMap.containsKey(schemaName)) {
-            throw new IllegalArgumentException("Schema名称 '" + schemaName + "' 已存在");
+            throw new IllegalArgumentException("Schema name '" + schemaName + "' already exists");
         }
 
         try {
             Schema.Parser parser = new Schema.Parser();
             Schema schema = parser.parse(schemaJson);
 
-            // 存储Schema
+            // Store Schema
             schemaMap.put(schemaName, schema);
 
-            // 创建Schema版本记录
+            // Create Schema version record
             int schemaId = schemaIdGenerator.getAndIncrement();
             SchemaVersion version = new SchemaVersion(schemaId, schemaName, schemaJson, 1);
             schemaVersions.put(schemaName, version);
 
-            Logger.log("成功注册Schema: " + schemaName + ", ID: " + schemaId);
+            Logger.log("Successfully registered Schema: " + schemaName + ", ID: " + schemaId);
             return schema;
         } catch (Exception e) {
-            Logger.log("注册Schema失败: " + e.getMessage());
+            Logger.log("Failed to register Schema: " + e.getMessage());
             e.printStackTrace();
-            throw new IllegalArgumentException("无效的Schema格式: " + e.getMessage());
+            throw new IllegalArgumentException("Invalid Schema format: " + e.getMessage());
         }
     }
 
     /**
-     * 更新现有Schema
-     * @param schemaName Schema名称
-     * @param schemaJson Schema的JSON表示
-     * @return 更新后的Schema对象
-     * @throws IllegalArgumentException 如果Schema不存在或Schema格式无效
+     * Update existing Schema
+     * @param schemaName Schema name
+     * @param schemaJson JSON representation of Schema
+     * @return Updated Schema object
+     * @throws IllegalArgumentException If schema does not exist or schema format is invalid
      */
     public Schema updateSchema(String schemaName, String schemaJson) {
         if (schemaName == null || schemaName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Schema名称不能为空");
+            throw new IllegalArgumentException("Schema name cannot be empty");
         }
 
         if (schemaJson == null || schemaJson.trim().isEmpty()) {
-            throw new IllegalArgumentException("Schema内容不能为空");
+            throw new IllegalArgumentException("Schema content cannot be empty");
         }
 
         if (!schemaMap.containsKey(schemaName)) {
-            throw new IllegalArgumentException("Schema名称 '" + schemaName + "' 不存在");
+            throw new IllegalArgumentException("Schema name '" + schemaName + "' does not exist");
         }
 
         try {
             Schema.Parser parser = new Schema.Parser();
             Schema schema = parser.parse(schemaJson);
 
-            // 更新Schema
+            // Update Schema
             schemaMap.put(schemaName, schema);
 
-            // 更新Schema版本记录
+            // Update Schema version record
             SchemaVersion currentVersion = schemaVersions.get(schemaName);
             int newVersion = currentVersion.getVersion() + 1;
             int schemaId = currentVersion.getId();
             SchemaVersion newVersionRecord = new SchemaVersion(schemaId, schemaName, schemaJson, newVersion);
             schemaVersions.put(schemaName, newVersionRecord);
 
-            Logger.log("成功更新Schema: " + schemaName + ", ID: " + schemaId + ", 版本: " + newVersion);
+            Logger.log("Successfully updated Schema: " + schemaName + ", ID: " + schemaId + ", Version: " + newVersion);
             return schema;
         } catch (Exception e) {
-            Logger.log("更新Schema失败: " + e.getMessage());
+            Logger.log("Failed to update Schema: " + e.getMessage());
             e.printStackTrace();
-            throw new IllegalArgumentException("无效的Schema格式: " + e.getMessage());
+            throw new IllegalArgumentException("Invalid Schema format: " + e.getMessage());
         }
     }
 
     /**
-     * 获取指定名称的最新Schema
-     * @param schemaName Schema名称
-     * @return Schema对象，如果不存在则返回null
+     * Get the latest Schema with specified name
+     * @param schemaName Schema name
+     * @return Schema object, returns null if not exists
      */
     public Schema getSchema(String schemaName) {
         return schemaMap.get(schemaName);
     }
 
     /**
-     * 获取所有Schema名称
-     * @return 不可修改的Schema名称集合
+     * Get all Schema names
+     * @return Unmodifiable collection of Schema names
      */
     public Map<String, Schema> getAllSchemas() {
         return Collections.unmodifiableMap(schemaMap);
     }
 
     /**
-     * 获取Schema版本信息
-     * @param schemaName Schema名称
-     * @return SchemaVersion对象，如果不存在则返回null
+     * Get Schema version information
+     * @param schemaName Schema name
+     * @return SchemaVersion object, returns null if not exists
      */
     public SchemaVersion getSchemaVersion(String schemaName) {
         return schemaVersions.get(schemaName);
     }
 
     /**
-     * 删除指定名称的Schema
-     * @param schemaName Schema名称
-     * @return 被删除的Schema对象，如果不存在则返回null
+     * Delete Schema with specified name
+     * @param schemaName Schema name
+     * @return Deleted Schema object, returns null if not exists
      */
     public Schema removeSchema(String schemaName) {
         Schema removedSchema = schemaMap.remove(schemaName);
         if (removedSchema != null) {
             SchemaVersion removedVersion = schemaVersions.remove(schemaName);
-            Logger.log("删除Schema: " + schemaName + ", ID: " +
-                     (removedVersion != null ? removedVersion.getId() : "未知"));
+            Logger.log("Deleted Schema: " + schemaName + ", ID: " +
+                     (removedVersion != null ? removedVersion.getId() : "Unknown"));
         }
         return removedSchema;
     }
 
     /**
-     * 验证Schema格式是否有效
-     * @param schemaJson Schema的JSON表示
-     * @return 如果有效则返回true，否则返回false
+     * Validate if Schema format is valid
+     * @param schemaJson JSON representation of Schema
+     * @return Returns true if valid, otherwise returns false
      */
     public boolean validateSchema(String schemaJson) {
         try {
@@ -176,16 +176,16 @@ public class SchemaManager {
             parser.parse(schemaJson);
             return true;
         } catch (Exception e) {
-            Logger.log("Schema验证失败: " + e.getMessage());
+            Logger.log("Schema validation failed: " + e.getMessage());
             return false;
         }
     }
 
     /**
-     * 初始化一些示例Schema
+     * Initialize some sample schemas
      */
     private void initializeSampleSchemas() {
-        // 用户Schema示例
+        // User Schema example
         String userSchema = "{\"type\":\"record\",\"name\":\"User\",\"fields\":["
                 + "{\"name\":\"id\",\"type\":\"int\"},"
                 + "{\"name\":\"name\",\"type\":\"string\"},"
@@ -194,11 +194,11 @@ public class SchemaManager {
         try {
             registerSchema("User", userSchema);
         } catch (Exception e) {
-            Logger.log("初始化示例User Schema失败: " + e.getMessage());
+            Logger.log("Failed to initialize sample User Schema: " + e.getMessage());
             e.printStackTrace();
         }
 
-        // 产品Schema示例
+        // Product Schema example
         String productSchema = "{\"type\":\"record\",\"name\":\"Product\",\"fields\":["
                 + "{\"name\":\"productId\",\"type\":\"string\"},"
                 + "{\"name\":\"name\",\"type\":\"string\"},"
@@ -208,13 +208,13 @@ public class SchemaManager {
         try {
             registerSchema("Product", productSchema);
         } catch (Exception e) {
-            Logger.log("初始化示例Product Schema失败: " + e.getMessage());
+            Logger.log("Failed to initialize sample Product Schema: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
-     * Schema版本信息类
+     * Schema version information class
      */
     public static class SchemaVersion {
         private final int id;
@@ -246,15 +246,15 @@ public class SchemaManager {
         }
 
         /**
-         * 获取Schema对象
-         * @return Schema对象
+         * Get Schema object
+         * @return Schema object
          */
         public Schema getSchema() {
             try {
                 Schema.Parser parser = new Schema.Parser();
                 return parser.parse(schemaJson);
             } catch (Exception e) {
-                throw new RuntimeException("解析Schema失败: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to parse Schema: " + e.getMessage(), e);
             }
         }
     }

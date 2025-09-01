@@ -15,7 +15,7 @@ import java.util.ResourceBundle;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * Schema管理对话框控制器
+ * Schema Management Dialog Controller
  */
 public class SchemaManagementController implements Initializable {
 
@@ -73,7 +73,7 @@ public class SchemaManagementController implements Initializable {
     }
 
     /**
-     * 刷新Schema列表
+     * Refresh Schema list
      */
     private void refreshSchemaList() {
         schemaNames.clear();
@@ -82,8 +82,8 @@ public class SchemaManagementController implements Initializable {
     }
 
     /**
-     * 加载选定的Schema
-     * @param schemaName Schema名称
+     * Load selected Schema
+     * @param schemaName Schema name
      */
     private void loadSchema(String schemaName) {
         SchemaManager.SchemaVersion version = schemaManager.getSchemaVersion(schemaName);
@@ -97,14 +97,14 @@ public class SchemaManagementController implements Initializable {
     }
 
     /**
-     * 更新按钮状态
+     * Update button states
      */
     private void updateButtonStates() {
         if (isNewSchema) {
-            saveSchemaButton.setText("添加Schema");
+            saveSchemaButton.setText("Add Schema");
             deleteSchemaButton.setDisable(true);
         } else {
-            saveSchemaButton.setText("更新Schema");
+            saveSchemaButton.setText("Update Schema");
             deleteSchemaButton.setDisable(false);
         }
 
@@ -113,7 +113,7 @@ public class SchemaManagementController implements Initializable {
     }
 
     /**
-     * 清空表单
+     * Clear form
      */
     private void clearForm() {
         schemaNameField.clear();
@@ -135,24 +135,24 @@ public class SchemaManagementController implements Initializable {
     private void onDeleteSchemaButtonClick() {
         String schemaName = schemaNameField.getText();
         if (schemaName == null || schemaName.trim().isEmpty()) {
-            showAlert(AlertType.WARNING, "警告", "请选择要删除的Schema");
+            showAlert(AlertType.WARNING, "Warning", "Please select a Schema to delete");
             return;
         }
 
         Alert alert = new Alert(AlertType.CONFIRMATION);
-        alert.setTitle("确认删除");
-        alert.setHeaderText("确定要删除Schema '" + schemaName + "' 吗？");
+        alert.setTitle("Confirm Delete");
+        alert.setHeaderText("Are you sure you want to delete Schema '" + schemaName + "'?");
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
                     schemaManager.removeSchema(schemaName);
-                    log("成功删除Schema: " + schemaName);
+                    log("Successfully deleted Schema: " + schemaName);
                     refreshSchemaList();
                     clearForm();
-                    showAlert(AlertType.INFORMATION, "成功", "Schema已成功删除");
+                    showAlert(AlertType.INFORMATION, "Success", "Schema has been successfully deleted");
                 } catch (Exception e) {
-                    log("删除Schema失败: " + e.getMessage());
-                    showAlert(AlertType.ERROR, "错误", "删除Schema失败: " + e.getMessage());
+                    log("Failed to delete Schema: " + e.getMessage());
+                    showAlert(AlertType.ERROR, "Error", "Failed to delete Schema: " + e.getMessage());
                 }
             }
         });
@@ -164,33 +164,33 @@ public class SchemaManagementController implements Initializable {
         String schemaContent = schemaContentArea.getText();
 
         if (schemaName == null || schemaName.trim().isEmpty()) {
-            showAlert(AlertType.WARNING, "警告", "Schema名称不能为空");
+            showAlert(AlertType.WARNING, "Warning", "Schema name cannot be empty");
             return;
         }
 
         if (schemaContent == null || schemaContent.trim().isEmpty()) {
-            showAlert(AlertType.WARNING, "警告", "Schema内容不能为空");
+            showAlert(AlertType.WARNING, "Warning", "Schema content cannot be empty");
             return;
         }
 
         try {
             if (isNewSchema) {
-                // 添加新Schema
+                // Add new Schema
                 schemaManager.registerSchema(schemaName, schemaContent);
-                log("成功添加Schema: " + schemaName);
-                showAlert(AlertType.INFORMATION, "成功", "Schema已成功添加");
+                log("Successfully added Schema: " + schemaName);
+                showAlert(AlertType.INFORMATION, "Success", "Schema has been successfully added");
             } else {
-                // 更新现有Schema
+                // Update existing Schema
                 schemaManager.updateSchema(schemaName, schemaContent);
-                log("成功更新Schema: " + schemaName);
-                showAlert(AlertType.INFORMATION, "成功", "Schema已成功更新");
+                log("Successfully updated Schema: " + schemaName);
+                showAlert(AlertType.INFORMATION, "Success", "Schema has been successfully updated");
             }
 
             refreshSchemaList();
             schemaListView.getSelectionModel().select(schemaName);
         } catch (Exception e) {
-            log("保存Schema失败: " + e.getMessage());
-            showAlert(AlertType.ERROR, "错误", "保存Schema失败: " + e.getMessage());
+            log("Failed to save Schema: " + e.getMessage());
+            showAlert(AlertType.ERROR, "Error", "Failed to save Schema: " + e.getMessage());
         }
     }
 
@@ -199,16 +199,16 @@ public class SchemaManagementController implements Initializable {
         String schemaContent = schemaContentArea.getText();
 
         if (schemaContent == null || schemaContent.trim().isEmpty()) {
-            validationResultLabel.setText("请输入Schema内容");
+            validationResultLabel.setText("Please enter Schema content");
             validationResultLabel.setStyle("-fx-text-fill: red;");
             return;
         }
 
         if (schemaManager.validateSchema(schemaContent)) {
-            validationResultLabel.setText("Schema格式有效");
+            validationResultLabel.setText("Schema format is valid");
             validationResultLabel.setStyle("-fx-text-fill: green;");
         } else {
-            validationResultLabel.setText("Schema格式无效");
+            validationResultLabel.setText("Schema format is invalid");
             validationResultLabel.setStyle("-fx-text-fill: red;");
         }
     }

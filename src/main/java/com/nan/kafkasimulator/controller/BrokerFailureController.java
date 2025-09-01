@@ -17,7 +17,7 @@ import java.util.ResourceBundle;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * Broker故障模拟控制器
+ * Broker Failure Simulation Controller
  */
 public class BrokerFailureController implements Initializable {
 
@@ -72,7 +72,7 @@ public class BrokerFailureController implements Initializable {
                 } else {
                     BrokerFailureSimulator.BrokerInfo brokerInfo = getTableRow().getItem();
                     boolean isActive = brokerInfo.isActive();
-                    setText(isActive ? "正常" : "宕机");
+                    setText(isActive ? "Normal" : "Down");
                     setTextFill(isActive ? javafx.scene.paint.Color.GREEN : javafx.scene.paint.Color.RED);
                 }
             }
@@ -99,8 +99,8 @@ public class BrokerFailureController implements Initializable {
 
         // 设置操作列的单元格工厂，以添加操作按钮
         actionsColumn.setCellFactory(param -> new TableCell<BrokerFailureSimulator.BrokerInfo, Void>() {
-            private final Button failButton = new Button("宕机");
-            private final Button recoverButton = new Button("恢复");
+            private final Button failButton = new Button("Fail");
+            private final Button recoverButton = new Button("Recover");
             private final HBox pane = new HBox(5, failButton, recoverButton);
 
             {
@@ -140,7 +140,7 @@ public class BrokerFailureController implements Initializable {
 
         // 初始化状态
         setControlsDisable(true);
-        statusLabel.setText("未连接到Kafka集群");
+        statusLabel.setText("Not connected to Kafka cluster");
     }
 
     /**
@@ -151,11 +151,11 @@ public class BrokerFailureController implements Initializable {
         Platform.runLater(() -> {
             setControlsDisable(!connected);
             if (connected) {
-                statusLabel.setText("已连接到Kafka集群");
+                statusLabel.setText("Connected to Kafka cluster");
                 initializeBrokerFailureSimulator();
                 startPeriodicUpdate();
             } else {
-                statusLabel.setText("未连接到Kafka集群");
+                statusLabel.setText("Not connected to Kafka cluster");
                 stopPeriodicUpdate();
                 brokerFailureSimulator = null;
                 brokerTableView.getItems().clear();
@@ -215,9 +215,9 @@ public class BrokerFailureController implements Initializable {
         try {
             brokerTableView.getItems().clear();
             brokerTableView.getItems().addAll(brokerFailureSimulator.getAllBrokerInfo());
-            log("Broker列表已刷新");
+            log("Broker list has been refreshed");
         } catch (Exception e) {
-            log("刷新Broker列表失败: " + e.getMessage());
+            log("Failed to refresh broker list: " + e.getMessage());
         }
     }
 
@@ -233,11 +233,11 @@ public class BrokerFailureController implements Initializable {
         try {
             boolean success = brokerFailureSimulator.failBroker(brokerId);
             if (success) {
-                log("已模拟Broker " + brokerId + " 宕机");
+                log("Simulated Broker " + brokerId + " failure");
                 refreshBrokerList();
             }
         } catch (Exception e) {
-            log("模拟Broker " + brokerId + " 宕机失败: " + e.getMessage());
+            log("Failed to simulate Broker " + brokerId + " failure: " + e.getMessage());
         }
     }
 
@@ -253,11 +253,11 @@ public class BrokerFailureController implements Initializable {
         try {
             boolean success = brokerFailureSimulator.recoverBroker(brokerId);
             if (success) {
-                log("已模拟Broker " + brokerId + " 恢复");
+                log("Simulated Broker " + brokerId + " recovery");
                 refreshBrokerList();
             }
         } catch (Exception e) {
-            log("模拟Broker " + brokerId + " 恢复失败: " + e.getMessage());
+            log("Failed to simulate Broker " + brokerId + " recovery: " + e.getMessage());
         }
     }
 
@@ -279,7 +279,7 @@ public class BrokerFailureController implements Initializable {
             }
 
             if (activeBrokers.isEmpty()) {
-                log("没有可用的Broker可以宕机");
+                log("No available Brokers to fail");
                 return;
             }
 
@@ -290,7 +290,7 @@ public class BrokerFailureController implements Initializable {
             // 宕机选中的broker
             handleFailBroker(randomBroker.getId());
         } catch (Exception e) {
-            log("随机宕机Broker失败: " + e.getMessage());
+            log("Random Broker failure failed: " + e.getMessage());
         }
     }
 
@@ -312,7 +312,7 @@ public class BrokerFailureController implements Initializable {
             }
 
             if (failedBrokerIds.isEmpty()) {
-                log("没有宕机的Broker需要恢复");
+                log("No failed Brokers to recover");
                 return;
             }
 
@@ -321,7 +321,7 @@ public class BrokerFailureController implements Initializable {
                 handleRecoverBroker(brokerId);
             }
         } catch (Exception e) {
-            log("恢复所有Broker失败: " + e.getMessage());
+            log("Failed to recover all Brokers: " + e.getMessage());
         }
     }
 

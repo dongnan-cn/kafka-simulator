@@ -68,9 +68,9 @@ public class ProducerController {
 
                     // 保存控制器引用
                     topicControllers.put(topic, controller);
-                    log("已创建Topic [" + topic + "] 的生产者配置Tab");
+                    log("Created producer configuration Tab for Topic [" + topic + "]");
                 } catch (Exception e) {
-                    log("创建Topic [" + topic + "] 的生产者配置Tab失败: " + e.getMessage());
+                    log("Failed to create producer configuration Tab for Topic [" + topic + "]: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
@@ -80,42 +80,42 @@ public class ProducerController {
     }
 
     private void resetTabs() {
-        // 如果没有tab，显示默认tab
+        // If no tabs exist, show default tab
         if (topicControllers.isEmpty()) {
             producerTabPane.getTabs().setAll(defaultTab);
         } else if (producerTabPane.getTabs().contains(defaultTab)) {
-            // 移除默认tab
+            // Remove default tab
             producerTabPane.getTabs().remove(defaultTab);
         }
     }
 
-    // 获取指定topic的生产者控制器
+    // Get producer controller for specified topic
     public ProducerTabController getTopicController(String topic) {
         return topicControllers.get(topic);
     }
 
-    // 设置所有生产者控件的禁用状态
+    // Set disable status for all producer controls
     public void setAllControlsDisable(boolean disable) {
         for (ProducerTabController controller : topicControllers.values()) {
             controller.setControlsDisable(disable);
         }
     }
 
-    // 设置连接状态变化时的处理
+    // Set handling for connection status changes
     public void setStatusOnConnectionChanged(boolean connected) {
         for (ProducerTabController controller : topicControllers.values()) {
             controller.setStatusOnConnectionChanged(connected);
         }
     }
 
-    // 关闭所有生产者
+    // Close all producers
     public void closeAllProducers() {
         for (ProducerTabController controller : topicControllers.values()) {
             controller.closeProducer();
         }
     }
 
-    // 清理所有资源
+    // Clean up all resources
     public void cleanup() {
         for (ProducerTabController controller : topicControllers.values()) {
             controller.cleanup();

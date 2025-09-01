@@ -121,7 +121,7 @@ public class ProducerTabController implements Initializable {
                 avroMessageVBox.setManaged(true);
                 // 禁用普通消息区域
                 producerValueArea.setDisable(true);
-                producerValueArea.setPromptText("使用Avro格式发送消息");
+                producerValueArea.setPromptText("Use Avro format to send messages");
             } else {
                 // 隐藏Avro相关控件
                 avroSchemaHBox.setVisible(false);
@@ -133,10 +133,10 @@ public class ProducerTabController implements Initializable {
 
                 if ("JSON".equals(newVal)) {
                     producerValueArea.setDisable(true);
-                    producerValueArea.setPromptText("JSON数据将自动生成");
+                    producerValueArea.setPromptText("JSON data will be auto-generated");
                 } else {
                     producerValueArea.setDisable(false);
-                    producerValueArea.setPromptText("输入要发送的消息");
+                    producerValueArea.setPromptText("Enter message to send");
                 }
             }
         });
@@ -169,12 +169,12 @@ public class ProducerTabController implements Initializable {
         if (producer != null) {
             producer.close(java.time.Duration.ofSeconds(5));
             producer = null;
-            log(String.format("生产者 [%s] 已关闭。", topicName));
+            log(String.format("Producer [%s] has been closed.", topicName));
         }
     }
 
     private void initializeProducer() {
-        log("初始化生产者...");
+        log("Initializing producer...");
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 ControllerRegistry.getConnectionManagerController().getBootstrapServers());
@@ -238,7 +238,7 @@ public class ProducerTabController implements Initializable {
 
     public void sendMessage() {
         if (getProducer() == null) {
-            log("错误: 请先连接到 Kafka 集群。");
+            log("Error: Please connect to Kafka cluster first.");
             return;
         }
 
@@ -251,13 +251,13 @@ public class ProducerTabController implements Initializable {
                 // 处理Avro消息
                 String schemaName = avroSchemaChoiceBox.getValue();
                 if (schemaName == null || schemaName.trim().isEmpty()) {
-                    log("错误: 请选择一个Avro Schema");
+                    log("Error: Please select an Avro Schema");
                     return;
                 }
 
                 String avroMessage = avroMessageArea.getText();
                 if (avroMessage == null || avroMessage.trim().isEmpty()) {
-                    log("错误: 请输入Avro消息内容");
+                    log("Error: Please enter Avro message content");
                     return;
                 }
 
@@ -272,16 +272,16 @@ public class ProducerTabController implements Initializable {
 
             ProducerRecord<String, String> record = new ProducerRecord<>(topicName, key, value);
 
-            log(String.format("正在发送%s消息到 [%s]...", dataType, topicName));
+            log(String.format("Sending %s message to [%s]...", dataType, topicName));
             producer.send(record, (metadata, exception) -> {
                 Platform.runLater(() -> {
                     if (exception == null) {
-                        log("消息发送成功！");
+                        log("Message sent successfully!");
                         log(String.format("  - Topic: %s", metadata.topic()));
-                        log(String.format("  - 分区: %d", metadata.partition()));
-                        log(String.format("  - 偏移量: %d", metadata.offset()));
+                        log(String.format("  - Partition: %d", metadata.partition()));
+                        log(String.format("  - Offset: %d", metadata.offset()));
                     } else {
-                        log(String.format("消息发送失败: %s", exception.getMessage()));
+                        log(String.format("Message sending failed: %s", exception.getMessage()));
                     }
                 });
             });
@@ -292,19 +292,19 @@ public class ProducerTabController implements Initializable {
 
     public void startAutoSend() {
         if (getProducer() == null) {
-            log("错误: 请先连接到 Kafka 集群。");
+            log("Error: Please connect to Kafka cluster first.");
             return;
         }
 
         if (autoSendExecutor != null && !autoSendExecutor.isShutdown()) {
-            log(String.format("错误: Topic %s 的自动发送任务已在运行。", topicName));
+            log(String.format("Error: Auto-send task for Topic %s is already running.", topicName));
             return;
         }
 
         try {
             double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
             if (messagesPerSecond <= 0) {
-                log("错误: 每秒消息数必须大于 0。");
+                log("Error: Messages per second must be greater than 0.");
                 return;
             }
             long intervalMs = (long) (1000 / messagesPerSecond);
@@ -312,7 +312,7 @@ public class ProducerTabController implements Initializable {
             int keyLength = Integer.parseInt(keyLengthField.getText());
             int jsonFieldsCount = Integer.parseInt(jsonFieldsCountField.getText());
 
-            // 禁用相关 UI 控件以防用户误操作
+            // Disable relevant UI controls to prevent user errors
             startAutoSendButton.setDisable(true);
             stopAutoSendButton.setDisable(false);
             messagesPerSecondField.setDisable(true);

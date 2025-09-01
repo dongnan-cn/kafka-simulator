@@ -27,51 +27,51 @@
                 <TextField fx:id="bufferMemoryField" prefWidth="80.0" text="33554432" />
             </children>
         </HBox>
-        <Label text="消息 Key" />
-        <TextField fx:id="producerKeyField" promptText="可选" />
-        <Label text="消息 Value" />
-        <TextArea fx:id="producerValueArea" promptText="输入要发送的消息"
+        <Label text="Message Key" />
+        <TextField fx:id="producerKeyField" promptText="Optional" />
+        <Label text="Message Value" />
+        <TextArea fx:id="producerValueArea" promptText="Enter message to send"
             VBox.vgrow="ALWAYS" />
         <Button fx:id="onSendButtonClick" maxWidth="1.7976931348623157E308"
-            onAction="#onSendButtonClick" text="发送消息" />
+            onAction="#onSendButtonClick" text="Send Message" />
         <Separator prefWidth="200.0" />
-        <Label text="自动发送设置" style="-fx-font-weight: bold;" />
+        <Label text="Auto Send Settings" style="-fx-font-weight: bold;" />
         <HBox spacing="10.0" alignment="CENTER_LEFT">
-            <Label text="每秒消息数 (msg/s):" />
+            <Label text="Messages per second (msg/s):" />
             <TextField fx:id="messagesPerSecondField" text="1" prefWidth="60.0" />
-            <Label text="数据类型:" />
+            <Label text="Data Type:" />
             <ChoiceBox fx:id="dataTypeChoiceBox" prefWidth="120.0" />
         </HBox>
 
-        <!-- Avro Schema选择区域 -->
+        <!-- Avro Schema selection area -->
         <HBox fx:id="avroSchemaHBox" spacing="10.0" alignment="CENTER_LEFT" visible="false" managed="false">
             <Label text="Avro Schema:" />
             <ChoiceBox fx:id="avroSchemaChoiceBox" prefWidth="150.0" />
-            <Button fx:id="manageSchemaButton" onAction="#onManageSchemaButtonClick" text="管理Schema" />
-            <Button fx:id="generateMessageButton" onAction="#onGenerateMessageButtonClick" text="生成随机消息" />
+            <Button fx:id="manageSchemaButton" onAction="#onManageSchemaButtonClick" text="Manage Schema" />
+            <Button fx:id="generateMessageButton" onAction="#onGenerateMessageButtonClick" text="Generate Random Message" />
         </HBox>
 
-        <!-- Avro消息编辑区域 -->
+        <!-- Avro message editing area -->
         <VBox fx:id="avroMessageVBox" spacing="10.0" visible="false" managed="false">
-            <Label text="Avro消息内容 (JSON格式)" />
-            <TextArea fx:id="avroMessageArea" promptText="输入符合选定Schema的JSON消息" VBox.vgrow="ALWAYS" />
+            <Label text="Avro Message Content (JSON format)" />
+            <TextArea fx:id="avroMessageArea" promptText="Enter JSON message that matches the selected schema, leave empty if want to generate random message" VBox.vgrow="ALWAYS" />
         </VBox>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
-            <Label fx:id="sentCountLabel" text="已发送: 0" />
+            <Label fx:id="sentCountLabel" text="Sent: 0" />
         </HBox>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
-            <Label text="随机 Key 长度:" />
+            <Label text="Random Key Length:" />
             <TextField fx:id="keyLengthField" text="8" prefWidth="60.0" />
-            <Label text="JSON 字段数量:" />
+            <Label text="JSON Field Count:" />
             <TextField fx:id="jsonFieldsCountField" text="3" prefWidth="60.0"
                 disable="true" />
         </HBox>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
             <Button fx:id="startAutoSendButton"
-                onAction="#onStartAutoSendButtonClick" text="开始自动发送"
+                onAction="#onStartAutoSendButtonClick" text="Start Auto Send"
                 maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
             <Button fx:id="stopAutoSendButton" onAction="#onStopAutoSendButtonClick"
-                text="停止自动发送" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"
+                text="Stop Auto Send" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"
                 disable="true" />
         </HBox>
     </children>

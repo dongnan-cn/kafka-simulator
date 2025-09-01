@@ -70,9 +70,9 @@ public class ConnectionManagerController implements Initializable {
         org.apache.kafka.clients.admin.DescribeClusterResult describeClusterResult = adminClient.describeCluster();
         java.util.Collection<org.apache.kafka.common.Node> nodes = describeClusterResult.nodes().get();
 
-        log("\n--- Broker 信息 ---");
+        log("\n--- Broker Information ---");
         for (org.apache.kafka.common.Node node : nodes) {
-            log("Broker ID: " + node.id() + ", 地址: " + node.host() + ":" + node.port());
+            log("Broker ID: " + node.id() + ", Address: " + node.host() + ":" + node.port());
         }
     }
 
@@ -90,11 +90,11 @@ public class ConnectionManagerController implements Initializable {
     public void connect() {
         bootstrapServers = bootstrapServersField.getText();
         if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
-            Alerter.showAlert("连接错误", null, "请输入 Kafka 集群地址。");
+            Alerter.showAlert("Connection Error", null, "Please enter Kafka cluster address.");
             return;
         }
 
-        log("正在尝试连接到 Kafka 集群: " + bootstrapServers);
+        log("Trying to connect to Kafka cluster: " + bootstrapServers);
 
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -114,13 +114,13 @@ public class ConnectionManagerController implements Initializable {
 
         connectTask.setOnSucceeded(event -> {
             javafx.application.Platform.runLater(() -> {
-                log("成功连接到 Kafka 集群！");
+                log("Successfully connected to Kafka cluster!");
                 try {
 
                     displayClusterMetadata();
                     onConnectionStateChanged.accept(true);
                 } catch (ExecutionException | InterruptedException e) {
-                    log("获取集群元数据失败: " + e.getMessage());
+                    log("Failed to get cluster metadata: " + e.getMessage());
                     onConnectionStateChanged.accept(false);
                 }
             });
@@ -129,7 +129,7 @@ public class ConnectionManagerController implements Initializable {
         connectTask.setOnFailed(event -> {
             javafx.application.Platform.runLater(() -> {
                 Throwable e = connectTask.getException();
-                log("连接失败: " + e.getMessage());
+                log("Connection failed: " + e.getMessage());
                 onConnectionStateChanged.accept(false);
             });
         });
@@ -139,17 +139,17 @@ public class ConnectionManagerController implements Initializable {
 
     public void disconnect() {
         if (adminClient != null) {
-            log("正在断开与 Kafka 集群的连接...");
+            log("Disconnecting from Kafka cluster...");
             ControllerRegistry.getProducerController().closeAllProducers();
             if (adminClient != null) {
                 adminClient.close(java.time.Duration.ofSeconds(5));
                 adminClient = null;
             }
 
-            log("已成功断开连接。");
+            log("Successfully disconnected.");
             onConnectionStateChanged.accept(false);
         } else {
-            log("当前未连接到 Kafka 集群。");
+            log("Currently not connected to Kafka cluster.");
         }
     }
 

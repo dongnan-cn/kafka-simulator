@@ -11,17 +11,17 @@
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
 
-    <!-- 消费者组标题栏 -->
+    <!-- Consumer group title bar -->
     <HBox spacing="10.0" alignment="CENTER_LEFT">
-        <Label text="消费者组: " style="-fx-font-weight: bold;" />
+        <Label text="Consumer Group: " style="-fx-font-weight: bold;" />
         <Label fx:id="consumerGroupIdLabel" />
         <Region HBox.hgrow="ALWAYS" />
-        <Button fx:id="showPartitionAssignmentButton" text="查看分区分配" />
+        <Button fx:id="showPartitionAssignmentButton" text="View Partition Assignment" />
     </HBox>
 
-    <!-- 消息接收区域 -->
+    <!-- Message receiving area -->
     <VBox fx:id="messageArea" VBox.vgrow="ALWAYS">
-        <Label text="收到的消息:" style="-fx-font-weight: bold;" />
+        <Label text="Received Messages:" style="-fx-font-weight: bold;" />
         <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
             <content>
                 <TextArea fx:id="messageTextArea" editable="false" wrapText="true" />
@@ -30,14 +30,14 @@
     </VBox>
 
 
-    <!-- 操作按钮区域 -->
+    <!-- Operation button area -->
     <HBox spacing="10.0" alignment="CENTER_RIGHT">
-        <Button fx:id="addConsumerButton" text="添加一个消费者实例" />
-        <Button fx:id="manualCommitButton" text="手动提交偏移量" visible="false" />
-        <Button fx:id="stopConsumerGroupButton" text="停止消费者组" />
-        <Button fx:id="resumeConsumerGroupButton" text="恢复消费者组" disable="true" />
+        <Button fx:id="addConsumerButton" text="Add Consumer Instance" />
+        <Button fx:id="manualCommitButton" text="Manual Commit Offset" visible="false" />
+        <Button fx:id="stopConsumerGroupButton" text="Stop Consumer Group" />
+        <Button fx:id="resumeConsumerGroupButton" text="Resume Consumer Group" disable="true" />
     </HBox>
 
-    <!-- 分割线 -->
+    <!-- Separator -->
     <Separator prefWidth="Infinity" />
 </VBox>

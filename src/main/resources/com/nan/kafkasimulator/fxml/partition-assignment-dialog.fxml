@@ -13,11 +13,11 @@
             </padding>
 
             <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Label text="消费者组: " style="-fx-font-weight: bold;" />
+                <Label text="Consumer Group: " style="-fx-font-weight: bold;" />
                 <Label fx:id="consumerGroupIdLabel" />
             </HBox>
 
-            <Label text="分区分配:" style="-fx-font-weight: bold;" />
+            <Label text="Partition Assignment:" style="-fx-font-weight: bold;" />
             <ScrollPane fitToWidth="true" prefHeight="400.0" prefWidth="600.0">
                 <content>
                     <TextArea fx:id="partitionAssignmentTextArea" editable="false" wrapText="true" />
@@ -25,10 +25,10 @@
             </ScrollPane>
 
             <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <CheckBox fx:id="autoRefreshCheckBox" text="自动刷新" />
-                <Button fx:id="refreshButton" text="立即刷新" />
+                <CheckBox fx:id="autoRefreshCheckBox" text="Auto Refresh" />
+                <Button fx:id="refreshButton" text="Refresh Now" />
             </HBox>
         </VBox>
     </content>
-    <ButtonType buttonData="OK_DONE" text="关闭" />
+    <ButtonType buttonData="OK_DONE" text="Close" />
 </DialogPane>

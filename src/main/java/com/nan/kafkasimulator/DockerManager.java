@@ -12,7 +12,7 @@ import java.util.List;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * Docker容器管理类，用于操作Kafka容器
+ * Docker container management class for operating Kafka containers
  */
 public class DockerManager {
     private DockerClient dockerClient;
@@ -20,10 +20,10 @@ public class DockerManager {
 
     private DockerManager() {
         try {
-            // 创建Docker客户端配置
+            // Create Docker client configuration
             DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
 
-            // 创建HTTP客户端
+            // Create HTTP client
             DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
                     .dockerHost(config.getDockerHost())
                     .sslConfig(config.getSSLConfig())
@@ -32,21 +32,21 @@ public class DockerManager {
                     .responseTimeout(java.time.Duration.ofSeconds(45))
                     .build();
 
-            // 创建Docker客户端
+            // Create Docker client
             dockerClient = DockerClientBuilder.getInstance(config)
                     .withDockerHttpClient(httpClient)
                     .build();
 
-            log("Docker客户端初始化成功");
+            log("Docker client initialized successfully");
         } catch (Exception e) {
-            log("Docker客户端初始化失败: " + e.getMessage());
+            log("Docker client initialization failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
-     * 获取DockerManager单例
-     * @return DockerManager实例
+     * Get DockerManager singleton
+     * @return DockerManager instance
      */
     public static synchronized DockerManager getInstance() {
         if (instance == null) {
@@ -56,27 +56,27 @@ public class DockerManager {
     }
 
     /**
-     * 获取所有Kafka容器
-     * @return Kafka容器列表
+     * Get all Kafka containers
+     * @return List of Kafka containers
      */
     public List<Container> getKafkaContainers() {
         try {
-            // 列出所有名称包含"kafka"的容器
+            // List all containers with name containing "kafka"
             return dockerClient.listContainersCmd()
                     .withShowAll(true)
                     .withNameFilter(List.of("kafka"))
                     .exec();
         } catch (Exception e) {
-            log("获取Kafka容器失败: " + e.getMessage());
+            log("Failed to get Kafka containers: " + e.getMessage());
             e.printStackTrace();
             return List.of();
         }
     }
 
     /**
-     * 根据容器ID获取容器
-     * @param containerId 容器ID
-     * @return 容器对象
+     * Get container by container ID
+     * @param containerId Container ID
+     * @return Container object
      */
     public Container getContainerById(String containerId) {
         try {
@@ -86,16 +86,16 @@ public class DockerManager {
                     .exec();
             return containers.isEmpty() ? null : containers.get(0);
         } catch (Exception e) {
-            log("获取容器失败: " + e.getMessage());
+            log("Failed to get container: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
 
     /**
-     * 根据容器名称获取容器
-     * @param containerName 容器名称
-     * @return 容器对象
+     * Get container by container name
+     * @param containerName Container name
+     * @return Container object
      */
     public Container getContainerByName(String containerName) {
         try {
@@ -105,72 +105,72 @@ public class DockerManager {
                     .exec();
             return containers.isEmpty() ? null : containers.get(0);
         } catch (Exception e) {
-            log("获取容器失败: " + e.getMessage());
+            log("Failed to get container: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
 
     /**
-     * 停止容器
-     * @param containerId 容器ID
-     * @return 操作是否成功
+     * Stop container
+     * @param containerId Container ID
+     * @return Whether the operation was successful
      */
     public boolean stopContainer(String containerId) {
         try {
             dockerClient.stopContainerCmd(containerId).exec();
-            log("已停止容器: " + containerId);
+            log("Stopped container: " + containerId);
             return true;
         } catch (Exception e) {
-            log("停止容器失败: " + e.getMessage());
+            log("Failed to stop container: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * 启动容器
-     * @param containerId 容器ID
-     * @return 操作是否成功
+     * Start container
+     * @param containerId Container ID
+     * @return Whether the operation was successful
      */
     public boolean startContainer(String containerId) {
         try {
             dockerClient.startContainerCmd(containerId).exec();
-            log("已启动容器: " + containerId);
+            log("Started container: " + containerId);
             return true;
         } catch (Exception e) {
-            log("启动容器失败: " + e.getMessage());
+            log("Failed to start container: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * 检查容器是否运行中
-     * @param containerId 容器ID
-     * @return 容器是否运行中
+     * Check if container is running
+     * @param containerId Container ID
+     * @return Whether the container is running
      */
     public boolean isContainerRunning(String containerId) {
         try {
             Container container = getContainerById(containerId);
             return container != null && container.getState().equals("running");
         } catch (Exception e) {
-            log("检查容器状态失败: " + e.getMessage());
+            log("Failed to check container status: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * 关闭Docker客户端
+     * Close Docker client
      */
     public void close() {
         if (dockerClient != null) {
             try {
                 dockerClient.close();
-                log("Docker客户端已关闭");
+                log("Docker client has been closed");
             } catch (Exception e) {
-                log("关闭Docker客户端失败: " + e.getMessage());
+                log("Failed to close Docker client: " + e.getMessage());
                 e.printStackTrace();
             }
         }

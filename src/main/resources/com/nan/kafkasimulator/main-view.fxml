@@ -38,7 +38,7 @@
                            </SplitPane>
                         </content>
                      </Tab>
-                     <Tab text="Broker故障模拟">
+                     <Tab text="Broker Failure Simulation">
                         <content>
                            <fx:include fx:id="brokerFailure"
                               source="fxml/broker-failure-tab-content.fxml" />

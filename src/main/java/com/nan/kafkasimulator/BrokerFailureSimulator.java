@@ -12,15 +12,15 @@ import java.util.concurrent.TimeoutException;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 /**
- * 模拟Kafka broker故障的类
+ * Class for simulating Kafka broker failures
  */
 public class BrokerFailureSimulator {
     private final AdminClient adminClient;
     private final DockerManager dockerManager;
-    private final Map<Integer, Boolean> brokerStatusMap; // brokerId -> isActive (true=正常, false=宕机)
+    private final Map<Integer, Boolean> brokerStatusMap; // brokerId -> isActive (true=active, false=failed)
     private final Map<Integer, String> brokerHostMap; // brokerId -> host:port
     private final Map<Integer, String> brokerContainerMap; // brokerId -> containerId
-    private final Map<Integer, Long> failureTimeMap; // brokerId -> 故障时间戳
+    private final Map<Integer, Long> failureTimeMap; // brokerId -> failure timestamp
 
     public BrokerFailureSimulator(AdminClient adminClient) {
         this.adminClient = adminClient;
@@ -33,146 +33,146 @@ public class BrokerFailureSimulator {
     }
 
     /**
-     * 初始化broker信息
+     * Initialize broker information
      */
     private void initializeBrokerInfo() {
         try {
             DescribeClusterResult describeClusterResult = adminClient.describeCluster();
             Collection<Node> nodes = describeClusterResult.nodes().get(10, TimeUnit.SECONDS);
 
-            // 获取所有Kafka容器
+            // Get all Kafka containers
             List<com.github.dockerjava.api.model.Container> kafkaContainers = dockerManager.getKafkaContainers();
 
             for (Node node : nodes) {
                 int brokerId = node.id();
                 String host = node.host();
                 int port = node.port();
-                brokerStatusMap.put(brokerId, true); // 初始状态为正常
+                brokerStatusMap.put(brokerId, true); // Initial state is active
                 brokerHostMap.put(brokerId, host + ":" + port);
 
-                // 尝试找到对应的容器
+                // Try to find the corresponding container
                 String containerName = "kafka" + brokerId;
                 for (com.github.dockerjava.api.model.Container container : kafkaContainers) {
                     for (String name : container.getNames()) {
                         if (name.contains(containerName)) {
                             brokerContainerMap.put(brokerId, container.getId());
-                            log("初始化Broker信息: ID=" + brokerId + ", 地址=" + host + ":" + port + ", 容器ID=" + container.getId());
+                            log("Initialize Broker info: ID=" + brokerId + ", Address=" + host + ":" + port + ", Container ID=" + container.getId());
                             break;
                         }
                     }
                 }
 
-                // 如果没有找到对应的容器，记录警告
+                // If no corresponding container is found, log a warning
                 if (!brokerContainerMap.containsKey(brokerId)) {
-                    log("警告: 未找到Broker " + brokerId + " 对应的Docker容器");
+                    log("Warning: Docker container not found for Broker " + brokerId);
                 }
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log("获取集群信息失败: " + e.getMessage());
+            log("Failed to get cluster information: " + e.getMessage());
         }
     }
 
     /**
-     * 模拟broker宕机
-     * @param brokerId 要宕机的broker ID
-     * @return 操作是否成功
+     * Simulate broker failure
+     * @param brokerId ID of the broker to fail
+     * @return whether the operation was successful
      */
     public boolean failBroker(int brokerId) {
         if (!brokerStatusMap.containsKey(brokerId)) {
-            log("错误: Broker ID " + brokerId + " 不存在");
+            log("Error: Broker ID " + brokerId + " does not exist");
             return false;
         }
 
         if (!brokerStatusMap.get(brokerId)) {
-            log("警告: Broker " + brokerId + " 已经处于宕机状态");
+            log("Warning: Broker " + brokerId + " is already in failed state");
             return false;
         }
 
-        // 检查是否有对应的容器
+        // Check if there is a corresponding container
         String containerId = brokerContainerMap.get(brokerId);
         if (containerId == null) {
-            log("错误: 未找到Broker " + brokerId + " 对应的Docker容器");
+            log("Error: Docker container not found for Broker " + brokerId);
             return false;
         }
 
-        // 实际停止容器
+        // Actually stop the container
         boolean success = dockerManager.stopContainer(containerId);
         if (success) {
             brokerStatusMap.put(brokerId, false);
             failureTimeMap.put(brokerId, System.currentTimeMillis());
-            log("已停止Broker " + brokerId + " (" + brokerHostMap.get(brokerId) + ") 对应的容器");
+            log("Stopped container for Broker " + brokerId + " (" + brokerHostMap.get(brokerId) + ")");
         } else {
-            log("停止Broker " + brokerId + " 容器失败");
+            log("Failed to stop container for Broker " + brokerId);
         }
 
         return success;
     }
 
     /**
-     * 模拟broker恢复
-     * @param brokerId 要恢复的broker ID
-     * @return 操作是否成功
+     * Simulate broker recovery
+     * @param brokerId ID of the broker to recover
+     * @return whether the operation was successful
      */
     public boolean recoverBroker(int brokerId) {
         if (!brokerStatusMap.containsKey(brokerId)) {
-            log("错误: Broker ID " + brokerId + " 不存在");
+            log("Error: Broker ID " + brokerId + " does not exist");
             return false;
         }
 
         if (brokerStatusMap.get(brokerId)) {
-            log("警告: Broker " + brokerId + " 已经处于正常状态");
+            log("Warning: Broker " + brokerId + " is already in active state");
             return false;
         }
 
-        // 检查是否有对应的容器
+        // Check if there is a corresponding container
         String containerId = brokerContainerMap.get(brokerId);
         if (containerId == null) {
-            log("错误: 未找到Broker " + brokerId + " 对应的Docker容器");
+            log("Error: Docker container not found for Broker " + brokerId);
             return false;
         }
 
-        // 实际启动容器
+        // Actually start the container
         boolean success = dockerManager.startContainer(containerId);
         if (success) {
             brokerStatusMap.put(brokerId, true);
             long downtime = System.currentTimeMillis() - failureTimeMap.get(brokerId);
-            log("已启动Broker " + brokerId + " (" + brokerHostMap.get(brokerId) + ") 对应的容器，宕机时长: " + downtime + "ms");
+            log("Started container for Broker " + brokerId + " (" + brokerHostMap.get(brokerId) + "), downtime: " + downtime + "ms");
         } else {
-            log("启动Broker " + brokerId + " 容器失败");
+            log("Failed to start container for Broker " + brokerId);
         }
 
         return success;
     }
 
     /**
-     * 获取broker状态
+     * Get broker status
      * @param brokerId broker ID
-     * @return broker状态 (true=正常, false=宕机)
+     * @return broker status (true=active, false=failed)
      */
     public Boolean getBrokerStatus(int brokerId) {
         return brokerStatusMap.get(brokerId);
     }
 
     /**
-     * 获取所有broker状态
-     * @return 所有broker状态的映射
+     * Get all broker statuses
+     * @return map of all broker statuses
      */
     public Map<Integer, Boolean> getAllBrokerStatus() {
         return new HashMap<>(brokerStatusMap);
     }
 
     /**
-     * 获取broker地址
+     * Get broker address
      * @param brokerId broker ID
-     * @return broker地址 (host:port)
+     * @return broker address (host:port)
      */
     public String getBrokerAddress(int brokerId) {
         return brokerHostMap.get(brokerId);
     }
 
     /**
-     * 获取所有broker信息
-     * @return 所有broker信息的列表
+     * Get all broker information
+     * @return list of all broker information
      */
     public List<BrokerInfo> getAllBrokerInfo() {
         List<BrokerInfo> brokerInfoList = new ArrayList<>();
@@ -181,12 +181,12 @@ public class BrokerFailureSimulator {
             String address = brokerHostMap.get(brokerId);
             Long failureTime = failureTimeMap.get(brokerId);
 
-            // 检查容器的实际运行状态
+            // Check the actual running status of the container
             boolean isActive;
             String containerId = brokerContainerMap.get(brokerId);
             if (containerId != null) {
                 isActive = dockerManager.isContainerRunning(containerId);
-                // 更新内部状态以匹配实际状态
+                // Update internal state to match actual state
                 if (isActive != entry.getValue()) {
                     brokerStatusMap.put(brokerId, isActive);
                     if (!isActive && failureTime == null) {
@@ -194,7 +194,7 @@ public class BrokerFailureSimulator {
                     }
                 }
             } else {
-                // 如果没有容器ID，使用内部状态
+                // If no container ID, use internal state
                 isActive = entry.getValue();
             }
 
@@ -204,7 +204,7 @@ public class BrokerFailureSimulator {
     }
 
     /**
-     * Broker信息类
+     * Broker information class
      */
     public static class BrokerInfo {
         private final int id;
