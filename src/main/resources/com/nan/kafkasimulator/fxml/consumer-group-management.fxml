@@ -42,6 +42,14 @@
                         </Label>
                         <ChoiceBox fx:id="autoCommitChoiceBox" prefWidth="150.0"
                             value="true" />
+                        <HBox fx:id="autoCommitIntervalBox" spacing="10.0" alignment="CENTER_LEFT">
+                            <Label text="自动提交间隔(ms)">
+                                <font>
+                                    <Font name="System Bold" size="12.0" />
+                                </font>
+                            </Label>
+                            <TextField fx:id="autoCommitIntervalField" prefWidth="150.0" promptText="5000" />
+                        </HBox>
                         <Button fx:id="onStartConsumerButtonClick"
                             maxWidth="1.7976931348623157E308"
                             onAction="#onStartConsumerButtonClick" text="启动消费者组" />

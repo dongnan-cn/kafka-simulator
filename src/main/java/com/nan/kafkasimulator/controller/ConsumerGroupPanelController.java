@@ -49,12 +49,13 @@ public class ConsumerGroupPanelController implements Initializable {
      * @param groupId 消费者组ID
      * @param topics 订阅的Topic列表
      * @param autoCommit 是否自动提交偏移量
+     * @param autoCommitInterval 自动提交间隔（毫秒）
      * @param bootstrapServers Kafka服务器地址
      * @param adminClient Kafka AdminClient
      * @return 消费者组面板控制器
      */
-    public static ConsumerGroupPanelController create(String groupId, java.util.List<String> topics, 
-            boolean autoCommit, String bootstrapServers, AdminClient adminClient) {
+    public static ConsumerGroupPanelController create(String groupId, java.util.List<String> topics,
+            boolean autoCommit, String autoCommitInterval, String bootstrapServers, AdminClient adminClient) {
         try {
             FXMLLoader loader = new FXMLLoader(ConsumerGroupPanelController.class.getResource(
                     "/com/nan/kafkasimulator/fxml/consumer-group-panel.fxml"));
@@ -63,7 +64,7 @@ public class ConsumerGroupPanelController implements Initializable {
 
             // 初始化消费者组管理器
             controller.consumerGroupManager = new ConsumerGroupManager(
-                    groupId, topics, autoCommit, bootstrapServers, 
+                    groupId, topics, autoCommit, autoCommitInterval, bootstrapServers,
                     controller.messageTextArea);
 
             // 设置消费者组ID
@@ -105,7 +106,7 @@ public class ConsumerGroupPanelController implements Initializable {
             }
         });
     }
-    
+
     /**
      * 显示分区分配对话框
      */
@@ -117,21 +118,21 @@ public class ConsumerGroupPanelController implements Initializable {
             DialogPane dialogPane = loader.load();
             // 获取控制器
             PartitionAssignmentDialogController controller = loader.getController();
-            
+
             // 设置消费者组ID
             controller.setConsumerGroupId(consumerGroupIdLabel.getText());
-            
+
             // 创建对话框
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);
             dialog.setTitle("分区分配信息");
-            
+
             // 在对话框显示后立即获取分区分配信息
             dialog.setOnShown(event -> {
                 // 获取分区分配信息并显示
                 consumerGroupManager.showPartitionAssignments(adminClient, controller.getPartitionAssignmentTextArea());
             });
-            
+
             // 显示对话框
             dialog.showAndWait();
         } catch (IOException e) {

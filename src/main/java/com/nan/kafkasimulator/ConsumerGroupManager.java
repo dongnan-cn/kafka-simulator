@@ -26,6 +26,7 @@ public class ConsumerGroupManager {
     private final String groupId;
     private final List<String> topics;
     private final boolean autoCommit;
+    private final String autoCommitInterval;
     private final String bootstrapServers;
 
     private final TextArea messagesArea;
@@ -36,13 +37,14 @@ public class ConsumerGroupManager {
     private final AtomicInteger instanceCounter = new AtomicInteger(1);
     private volatile boolean isRunning = false;
 
-    public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String bootstrapServers,
+    public ConsumerGroupManager(String groupId, List<String> topics, boolean autoCommit, String autoCommitInterval, String bootstrapServers,
             TextArea messagesArea) {
         this.groupId = groupId;
         this.topics = topics;
         this.autoCommit = autoCommit;
         this.bootstrapServers = bootstrapServers;
         this.messagesArea = messagesArea;
+        this.autoCommitInterval = autoCommitInterval;
     }
 
     public String getGroupId() {
@@ -78,6 +80,9 @@ public class ConsumerGroupManager {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit);
+        if (autoCommit) {
+            props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval);
+        }
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, instanceId);
 

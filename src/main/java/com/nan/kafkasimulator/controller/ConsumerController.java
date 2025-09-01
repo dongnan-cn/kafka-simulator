@@ -3,6 +3,7 @@ package com.nan.kafkasimulator.controller;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 
@@ -25,6 +26,10 @@ public class ConsumerController implements Initializable {
     private VBox topicCheckBoxContainer;
     @FXML
     private ChoiceBox<String> autoCommitChoiceBox;
+    @FXML
+    private HBox autoCommitIntervalBox;
+    @FXML
+    private TextField autoCommitIntervalField;
     @FXML
     private ListView<String> consumerGroupListView;
     @FXML
@@ -49,6 +54,17 @@ public class ConsumerController implements Initializable {
         // 初始化自动提交选项
         autoCommitChoiceBox.getItems().addAll("true", "false");
         autoCommitChoiceBox.setValue("true");
+
+        // 根据自动提交选项显示/隐藏自动提交间隔设置
+        autoCommitIntervalBox.setVisible(true);
+        autoCommitChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if ("true".equalsIgnoreCase(newVal)) {
+                autoCommitIntervalBox.setVisible(true);
+            } else {
+                autoCommitIntervalBox.setVisible(false);
+            }
+        });
+
         ControllerRegistry.setConsumerController(this);
 
         // 初始化消费者组列表
@@ -150,11 +166,18 @@ public class ConsumerController implements Initializable {
             return;
         }
 
+        // 获取自动提交间隔值
+        String autoCommitInterval = autoCommitIntervalField.getText();
+        if (autoCommitInterval == null || autoCommitInterval.trim().isEmpty()) {
+            autoCommitInterval = "5000"; // default
+        }
+
         // 创建新的消费者组面板
         ConsumerGroupPanelController panelController = ConsumerGroupPanelController.create(
                 groupId,
                 topicNames,
                 Boolean.valueOf(autoCommitChoiceBox.getValue()),
+                autoCommitInterval,
                 bootstrapServers,
                 adminClient);
 
