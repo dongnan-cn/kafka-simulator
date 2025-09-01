@@ -79,9 +79,16 @@ public class ConsumerGroupManager {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit);
+        // 禁用Kafka的自动提交，使用我们自己的定时提交机制
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        // 设置自定义属性，以便ConsumerInstance可以读取
+        props.put("enable.auto.commit", autoCommit);
         if (autoCommit) {
             props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval);
+            props.put("auto.commit.interval.ms", autoCommitInterval);
+        } else {
+            // 即使禁用自动提交，也设置一个默认值，避免ConsumerInstance中解析错误
+            props.put("auto.commit.interval.ms", "5000");
         }
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, instanceId);
@@ -175,5 +182,13 @@ public class ConsumerGroupManager {
     public void resumeAll() {
         log("正在停止消费者组 '" + groupId + "' 中的所有消费者实例...");
         consumers.forEach(ConsumerInstance::resume);
+    }
+
+    /**
+     * 手动提交所有消费者实例的偏移量
+     */
+    public void manualCommitAll() {
+        log("正在手动提交消费者组 '" + groupId + "' 中所有消费者实例的偏移量...");
+        consumers.forEach(ConsumerInstance::requestManualCommit);
     }
 }

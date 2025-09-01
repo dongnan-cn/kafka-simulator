@@ -5,6 +5,7 @@ import javafx.scene.control.TextArea;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.TopicPartition;
 
@@ -12,6 +13,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
@@ -23,12 +27,27 @@ public class ConsumerInstance implements Runnable {
     private final TextArea messagesArea;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final AtomicBoolean paused = new AtomicBoolean(false);
+    private ScheduledExecutorService commitScheduler;
+    private final boolean autoCommit;
+    private final int autoCommitInterval;
 
     public ConsumerInstance(Properties props, String instanceId, List<String> topicNames, TextArea messagesArea) {
         this.consumer = new KafkaConsumer<>(props);
         this.instanceId = instanceId;
         this.topicNames = topicNames;
         this.messagesArea = messagesArea;
+        this.autoCommit = Boolean.TRUE.equals(props.get("enable.auto.commit"));
+        // 安全地获取自动提交间隔，如果不存在或autoCommit为false，则使用默认值
+        if (autoCommit && props.get("auto.commit.interval.ms") != null) {
+            this.autoCommitInterval = Integer.parseInt(props.get("auto.commit.interval.ms").toString());
+        } else {
+            this.autoCommitInterval = 5000; // 默认值
+        }
+
+        // 如果启用了自动提交，设置定时提交任务
+        if (autoCommit) {
+            setupAutoCommit();
+        }
     }
 
     @Override
@@ -59,6 +78,11 @@ public class ConsumerInstance implements Runnable {
 
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
+                // 检查是否有手动提交请求
+                if (requestManualCommit.get()) {
+                    doManualCommit();
+                }
+
                 if (!records.isEmpty()) {
                     log("消费者实例 '" + instanceId + "' 收到 " + records.count() + " 条消息。");
                     Platform.runLater(() -> {
@@ -82,8 +106,65 @@ public class ConsumerInstance implements Runnable {
         }
     }
 
+    private void setupAutoCommit() {
+        commitScheduler = Executors.newSingleThreadScheduledExecutor();
+        commitScheduler.scheduleAtFixedRate(() -> {
+            if (running.get() && !paused.get()) {
+                consumer.commitAsync((offsets, exception) -> {
+                    if (exception == null) {
+                        log("消费者实例 '" + instanceId + "' 已自动提交偏移量: " + offsets);
+                    } else {
+                        log("消费者实例 '" + instanceId + "' 自动提交偏移量失败: " + exception.getMessage());
+                    }
+                });
+            }
+        }, autoCommitInterval, autoCommitInterval, TimeUnit.MILLISECONDS);
+
+        log("消费者实例 '" + instanceId + "' 已启用自动提交，提交间隔: " + autoCommitInterval + "ms");
+    }
+
+    /**
+     * 手动提交偏移量的标志位
+     */
+    private final AtomicBoolean requestManualCommit = new AtomicBoolean(false);
+
+    /**
+     * 请求手动提交偏移量（线程安全）
+     */
+    public void requestManualCommit() {
+        requestManualCommit.set(true);
+    }
+
+    /**
+     * 执行手动提交偏移量（在消费者线程中调用）
+     */
+    private void doManualCommit() {
+        if (running.get() && !paused.get()) {
+            consumer.commitAsync((offsets, exception) -> {
+                if (exception == null) {
+                    log("消费者实例 '" + instanceId + "' 手动提交偏移量成功: " + offsets);
+                } else {
+                    log("消费者实例 '" + instanceId + "' 手动提交偏移量失败: " + exception.getMessage());
+                }
+            });
+            requestManualCommit.set(false);
+        } else {
+            log("消费者实例 '" + instanceId + "' 当前无法提交偏移量（运行状态: " + running.get() + ", 暂停状态: " + paused.get() + "）");
+        }
+    }
+
     public void shutdown() {
         running.set(false);
+        if (commitScheduler != null) {
+            commitScheduler.shutdown();
+            try {
+                if (!commitScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    commitScheduler.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                commitScheduler.shutdownNow();
+            }
+        }
         consumer.wakeup(); // 中断 poll() 方法，以便线程可以退出
     }
 

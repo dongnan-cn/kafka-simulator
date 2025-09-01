@@ -33,6 +33,7 @@
     <!-- 操作按钮区域 -->
     <HBox spacing="10.0" alignment="CENTER_RIGHT">
         <Button fx:id="addConsumerButton" text="添加一个消费者实例" />
+        <Button fx:id="manualCommitButton" text="手动提交偏移量" visible="false" />
         <Button fx:id="stopConsumerGroupButton" text="停止消费者组" />
         <Button fx:id="resumeConsumerGroupButton" text="恢复消费者组" disable="true" />
     </HBox>

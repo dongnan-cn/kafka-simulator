@@ -34,6 +34,8 @@ public class ConsumerGroupPanelController implements Initializable {
     @FXML
     private Button addConsumerButton;
     @FXML
+    private Button manualCommitButton;
+    @FXML
     private Button stopConsumerGroupButton;
     @FXML
     private Button resumeConsumerGroupButton;
@@ -73,6 +75,9 @@ public class ConsumerGroupPanelController implements Initializable {
             // 设置AdminClient
             controller.adminClient = adminClient;
 
+            // 根据autoCommit参数控制手动提交按钮的可见性
+            controller.manualCommitButton.setVisible(!autoCommit);
+
             // 启动消费者组
             controller.consumerGroupManager.start(1);
 
@@ -99,6 +104,10 @@ public class ConsumerGroupPanelController implements Initializable {
         });
 
         addConsumerButton.setOnAction(event -> consumerGroupManager.startNewConsumerInstance());
+
+        manualCommitButton.setOnAction(event -> {
+            consumerGroupManager.manualCommitAll();
+        });
 
         showPartitionAssignmentButton.setOnAction(event -> {
             if (adminClient != null) {
