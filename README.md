@@ -10,7 +10,7 @@ KafkaSimulator is a JavaFX-based desktop application for simulating and visualiz
   - Create multiple producer instances
   - Configure producer settings (acks, batch.size, linger.ms)
   - Send messages manually or automatically
-  - Support for different message types (String, JSON)
+  - Support for different message types (String, JSON, Avro)
   - Multi-tab interface for managing producers for different topics
 - **Consumer Simulation**:
   - Create multiple consumer instances with different group IDs
@@ -18,7 +18,9 @@ KafkaSimulator is a JavaFX-based desktop application for simulating and visualiz
   - View received messages in real-time
   - Manual offset commit functionality (when auto commit is disabled)
   - Visualize partition assignments
+- **Schema Management**: Create, manage, and validate Avro schemas
 - **Visual Monitoring**: Real-time display of message flows and consumer group activities
+- **Internationalization Support**: All UI interfaces and log content are available in English
 
 ## Environment Preparation
 Before starting the project, make sure the following software is installed on your system:
@@ -66,9 +68,11 @@ Before starting the project, make sure the following software is installed on yo
 2. Configure producer settings (acks, batch.size, linger.ms)
 3. For manual sending:
    - Enter message key and value
+   - For Avro messages, select a schema and enter JSON content
    - Click "Send Message"
 4. For automatic sending:
    - Configure auto-send settings (messages per second, data type)
+   - For Avro messages, select a schema and configure random message generation
    - Click "Start Auto Send"
    - Monitor the message count
    - Click "Stop Auto Send" when finished
@@ -79,7 +83,8 @@ Before starting the project, make sure the following software is installed on yo
 3. Configure consumer settings (auto.offset.reset, enable auto commit)
 4. Click "Create Consumer Group"
 5. View received messages in real-time
-6. If auto commit is disabled, use the "Manual Commit Offset" button to commit offsets manually
+6. View partition assignment information
+7. If auto commit is disabled, use the "Manual Commit Offset" button to commit offsets manually
 
 ## Precautions
 - Ensure that Docker and Maven are correctly installed and configured on your system.
@@ -94,11 +99,12 @@ The project follows a layered architecture:
 - **Data/Model Layer**: Data structures for inter-layer communication
 
 ## Future Enhancements
-- Support for Avro message format
 - Integration with Schema Registry
 - Advanced monitoring metrics (throughput, latency)
 - Message browsing and search functionality
 - Enhanced visualization of consumer group rebalancing
+- Support for additional message formats (Protobuf, etc.)
+- Multi-language support for UI (beyond English)
 
 ## Contributing
 This project is open for contributions. If you would like to add new features or improve existing ones, please follow the guidelines in the project plan (plan.md).
