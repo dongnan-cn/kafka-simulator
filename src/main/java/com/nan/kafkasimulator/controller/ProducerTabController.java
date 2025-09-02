@@ -291,8 +291,8 @@ public class ProducerTabController implements Initializable {
                         if (metricsCollector != null) {
                             try {
                                 // 获取用户设置的每秒消息数
-                                double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
-                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, messagesPerSecond);
+                                double msgPerSecond = Double.parseDouble(messagesPerSecondField.getText());
+                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, msgPerSecond);
                             } catch (NumberFormatException e) {
                                 // 如果解析失败，使用默认值1.0
                                 metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
@@ -387,7 +387,13 @@ public class ProducerTabController implements Initializable {
                             
                             // 更新监控数据
                             if (metricsCollector != null) {
-                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 1.0);
+                                try {
+                                    // 获取用户设置的每秒消息数
+                                    double msgPerSecond = Double.parseDouble(messagesPerSecondField.getText());
+                                    metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, msgPerSecond);
+                                } catch (NumberFormatException e) {
+                                    metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
+                                }
                             }
                         });
                     } else {
