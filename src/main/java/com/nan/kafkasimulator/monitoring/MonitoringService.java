@@ -6,7 +6,6 @@ import javafx.concurrent.Task;
 import javafx.util.Duration;
 
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,7 +25,7 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
 
         try {
             this.metricsDatabase = MetricsDatabase.getInstance();
-            this.metricsCollector = new MetricsCollector();
+            this.metricsCollector = MetricsCollectorSingleton.getInstance();
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Failed to initialize metrics database", e);
             throw new RuntimeException("Failed to initialize monitoring service", e);
@@ -48,6 +47,9 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
                     // 保存到数据库
                     saveMetricsToDatabase(throughputData, latencyData, brokerMetricsData);
 
+                    // 重置吞吐量数据，以便下次收集新的数据
+                    metricsCollector.resetThroughputData();
+                    
                     // 返回聚合的监控数据
                     return new MonitoringData(throughputData, latencyData, topicThroughputData, brokerMetricsData);
                 } catch (Exception e) {

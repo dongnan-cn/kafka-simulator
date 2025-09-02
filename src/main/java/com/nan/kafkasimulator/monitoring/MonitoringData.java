@@ -1,6 +1,5 @@
 package com.nan.kafkasimulator.monitoring;
 
-import java.util.Map;
 
 /**
  * 封装所有监控数据的类

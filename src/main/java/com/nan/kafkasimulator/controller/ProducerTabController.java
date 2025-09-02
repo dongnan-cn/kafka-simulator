@@ -2,6 +2,8 @@ package com.nan.kafkasimulator.controller;
 
 import com.nan.kafkasimulator.ControllerRegistry;
 import com.nan.kafkasimulator.avro.SchemaManager;
+import com.nan.kafkasimulator.monitoring.MetricsCollector;
+import com.nan.kafkasimulator.monitoring.MetricsCollectorSingleton;
 import com.nan.kafkasimulator.utils.RandomDataGenerator;
 
 import javafx.application.Platform;
@@ -86,6 +88,7 @@ public class ProducerTabController implements Initializable {
     private KafkaProducer<String, String> producer;
     private ScheduledExecutorService autoSendExecutor;
     private AtomicLong sentCount;
+    private MetricsCollector metricsCollector;
     private Map<TextField, ScheduledExecutorService> delayedListeners = new HashMap<>();
     private final String topicName;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -102,6 +105,9 @@ public class ProducerTabController implements Initializable {
     public void initialize(URL arg0, ResourceBundle arg1) {
         // 初始化SchemaManager
         schemaManager = SchemaManager.getInstance();
+        
+        // 初始化MetricsCollector
+        metricsCollector = MetricsCollectorSingleton.getInstance();
 
         acksChoiceBox.getItems().addAll("all", "1", "0");
         acksChoiceBox.setValue("1");
@@ -280,6 +286,18 @@ public class ProducerTabController implements Initializable {
                         log(String.format("  - Topic: %s", metadata.topic()));
                         log(String.format("  - Partition: %d", metadata.partition()));
                         log(String.format("  - Offset: %d", metadata.offset()));
+                        
+                        // 更新监控数据
+                        if (metricsCollector != null) {
+                            try {
+                                // 获取用户设置的每秒消息数
+                                double messagesPerSecond = Double.parseDouble(messagesPerSecondField.getText());
+                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, messagesPerSecond);
+                            } catch (NumberFormatException e) {
+                                // 如果解析失败，使用默认值1.0
+                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
+                            }
+                        }
                     } else {
                         log(String.format("Message sending failed: %s", exception.getMessage()));
                     }
@@ -364,7 +382,14 @@ public class ProducerTabController implements Initializable {
                 producer.send(record, (metadata, exception) -> {
                     if (exception == null) {
                         sentCount.incrementAndGet();
-                        Platform.runLater(() -> sentCountLabel.setText(String.format("已发送: %d", sentCount.get())));
+                        Platform.runLater(() -> {
+                            sentCountLabel.setText(String.format("已发送: %d", sentCount.get()));
+                            
+                            // 更新监控数据
+                            if (metricsCollector != null) {
+                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 1.0);
+                            }
+                        });
                     } else {
                         Platform.runLater(() -> log(String.format("发送消息失败: %s", exception.getMessage())));
                     }

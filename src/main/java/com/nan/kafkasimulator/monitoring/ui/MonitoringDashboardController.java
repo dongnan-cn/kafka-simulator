@@ -1,5 +1,6 @@
 package com.nan.kafkasimulator.monitoring.ui;
 
+import com.nan.kafkasimulator.monitoring.BrokerMetricsCollector;
 import com.nan.kafkasimulator.monitoring.BrokerMetricsData;
 import com.nan.kafkasimulator.monitoring.LatencyData;
 import com.nan.kafkasimulator.monitoring.MonitoringData;
@@ -13,15 +14,14 @@ import javafx.fxml.Initializable;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
 
 import java.net.URL;
 import java.util.Map;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -34,6 +34,7 @@ public class MonitoringDashboardController implements Initializable {
     private static final Logger LOGGER = Logger.getLogger(MonitoringDashboardController.class.getName());
 
     private MonitoringService monitoringService;
+    private BrokerMetricsCollector brokerMetricsCollector;
 
     // 图表数据存储
     private final int MAX_DATA_POINTS = 20; // 最多显示20个数据点
@@ -65,29 +66,19 @@ public class MonitoringDashboardController implements Initializable {
     private void initializeCharts() {
         // 初始化系统吞吐量图表
         systemThroughputChart.setTitle("System Throughput");
-        systemThroughputChart.getXAxis().setLabel("Time");
-        systemThroughputChart.getYAxis().setLabel("Messages/sec");
-        systemThroughputChart.setAnimated(false);
         systemThroughputChart.setCreateSymbols(false);
 
         // 初始化Topic吞吐量柱状图
         topicThroughputChart.setTitle("Topic Throughput");
-        topicThroughputChart.getXAxis().setLabel("Topic");
-        topicThroughputChart.getYAxis().setLabel("Messages/sec");
-        topicThroughputChart.setAnimated(false);
+
 
         // 初始化端到端延迟图表
         e2eLatencyChart.setTitle("End-to-End Latency");
-        e2eLatencyChart.getXAxis().setLabel("Time");
-        e2eLatencyChart.getYAxis().setLabel("Latency (ms)");
-        e2eLatencyChart.setAnimated(false);
         e2eLatencyChart.setCreateSymbols(false);
 
         // 初始化延迟分布柱状图
         latencyDistributionChart.setTitle("Latency Distribution");
-        latencyDistributionChart.getXAxis().setLabel("Latency Range");
-        latencyDistributionChart.getYAxis().setLabel("Count");
-        latencyDistributionChart.setAnimated(false);
+        //latencyDistributionChart.setAnimated(false);
 
         // 初始化Broker指标网格
         initializeBrokerMetricsGrid();
@@ -197,8 +188,9 @@ public class MonitoringDashboardController implements Initializable {
         for (Map.Entry<String, Double> entry : data.getTopicMessagesPerSecond().entrySet()) {
             series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
         }
-
-        topicThroughputChart.getData().add(series);
+        if(series.getData().size() > 0) {
+            topicThroughputChart.getData().add(series);
+        }
     }
 
     private void updateBrokerMetricsGrid(BrokerMetricsData data) {
@@ -242,10 +234,36 @@ public class MonitoringDashboardController implements Initializable {
      * @param connected 是否连接
      */
     public void setConnected(boolean connected) {
-        if (connected && monitoringService != null && monitoringService.getState() == javafx.concurrent.Service.State.READY) {
-            monitoringService.start();
-        } else if (!connected && monitoringService != null && monitoringService.isRunning()) {
-            monitoringService.cancel();
+        if (connected) {
+            if (monitoringService != null && monitoringService.getState() == javafx.concurrent.Service.State.READY) {
+                monitoringService.start();
+            }
+            
+            // 启动Broker指标收集器
+            if (brokerMetricsCollector == null) {
+                try {
+                    // 获取AdminClient配置
+                    Properties adminClientConfig = new Properties();
+                    adminClientConfig.put("bootstrap.servers", 
+                        com.nan.kafkasimulator.ControllerRegistry.getConnectionManagerController().getBootstrapServers());
+                    
+                    brokerMetricsCollector = new BrokerMetricsCollector(adminClientConfig);
+                    LOGGER.info("Broker metrics collector started");
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Failed to start broker metrics collector", e);
+                }
+            }
+        } else {
+            if (monitoringService != null && monitoringService.isRunning()) {
+                monitoringService.cancel();
+            }
+            
+            // 停止Broker指标收集器
+            if (brokerMetricsCollector != null) {
+                brokerMetricsCollector.shutdown();
+                brokerMetricsCollector = null;
+                LOGGER.info("Broker metrics collector stopped");
+            }
         }
     }
     
@@ -255,6 +273,13 @@ public class MonitoringDashboardController implements Initializable {
     public void cleanup() {
         if (monitoringService != null && monitoringService.isRunning()) {
             monitoringService.cancel();
+        }
+        
+        // 停止Broker指标收集器
+        if (brokerMetricsCollector != null) {
+            brokerMetricsCollector.shutdown();
+            brokerMetricsCollector = null;
+            LOGGER.info("Broker metrics collector stopped during cleanup");
         }
     }
 }

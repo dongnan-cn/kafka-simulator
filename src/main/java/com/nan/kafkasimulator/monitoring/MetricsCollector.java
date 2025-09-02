@@ -3,13 +3,13 @@ package com.nan.kafkasimulator.monitoring;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+// import java.util.logging.Logger;
 
 /**
  * 监控指标收集器
  */
 public class MetricsCollector {
-    private static final Logger LOGGER = Logger.getLogger(MetricsCollector.class.getName());
+    // private static final Logger LOGGER = Logger.getLogger(MetricsCollector.class.getName());
 
     // 存储生产者吞吐量数据
     private final Map<String, Double> producerThroughputMap = new ConcurrentHashMap<>();
@@ -96,7 +96,7 @@ public class MetricsCollector {
         Map<String, Double> topicMessagesPerSecond = new HashMap<>();
         Map<String, Double> topicBytesPerSecond = new HashMap<>();
 
-        // 合并生产者和消费者的吞吐量数据
+        // 只合并生产者的吞吐量数据
         for (Map.Entry<String, Double> entry : producerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
@@ -107,6 +107,8 @@ public class MetricsCollector {
             }
         }
 
+        // 注释掉消费者吞吐量数据的合并
+        /*
         for (Map.Entry<String, Double> entry : consumerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
@@ -116,6 +118,7 @@ public class MetricsCollector {
                 topicBytesPerSecond.putIfAbsent(topic, 0.0);
             }
         }
+        */
 
         return new TopicThroughputData(
             topicMessagesPerSecond,
@@ -186,5 +189,13 @@ public class MetricsCollector {
 
         topicLatencyData.values().forEach(Map::clear);
         brokerMetricsData.values().forEach(Map::clear);
+    }
+    
+    /**
+     * 重置吞吐量数据，在每次收集数据后调用
+     */
+    public void resetThroughputData() {
+        producerThroughputMap.clear();
+        consumerThroughputMap.clear();
     }
 }

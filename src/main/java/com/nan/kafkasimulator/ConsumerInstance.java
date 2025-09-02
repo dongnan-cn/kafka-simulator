@@ -7,6 +7,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.TopicPartition;
+import com.nan.kafkasimulator.monitoring.MetricsCollector;
+import com.nan.kafkasimulator.monitoring.MetricsCollectorSingleton;
 
 import java.time.Duration;
 import java.util.List;
@@ -29,6 +31,7 @@ public class ConsumerInstance implements Runnable {
     private ScheduledExecutorService commitScheduler;
     private final boolean autoCommit;
     private final int autoCommitInterval;
+    private MetricsCollector metricsCollector;
 
     public ConsumerInstance(Properties props, String instanceId, List<String> topicNames, TextArea messagesArea) {
         this.consumer = new KafkaConsumer<>(props);
@@ -36,6 +39,9 @@ public class ConsumerInstance implements Runnable {
         this.topicNames = topicNames;
         this.messagesArea = messagesArea;
         this.autoCommit = Boolean.TRUE.equals(props.get("enable.auto.commit"));
+
+        // 初始化MetricsCollector
+        this.metricsCollector = MetricsCollectorSingleton.getInstance();
         // Safely get auto commit interval, use default value if it doesn't exist or autoCommit is false
         if (autoCommit && props.get("auto.commit.interval.ms") != null) {
             this.autoCommitInterval = Integer.parseInt(props.get("auto.commit.interval.ms").toString());
@@ -103,10 +109,20 @@ public class ConsumerInstance implements Runnable {
 
                             String message = String.format(
                                     "Consumer: %s | Topic: %s | Partition: %d | Offset: %d | Type: %s | Key: %s | Value: %s%n",
-                                    instanceId, record.topic(), record.partition(), record.offset(), 
+                                    instanceId, record.topic(), record.partition(), record.offset(),
                                     messageType, record.key(), value);
                             messagesArea.appendText(message);
                             messagesArea.setScrollTop(Double.MAX_VALUE);
+
+                            // 更新监控数据
+                            if (metricsCollector != null) {
+                                metricsCollector.updateConsumerThroughput(record.topic(), instanceId, 1.0);
+                                // 简单计算延迟，实际应用中应该使用更精确的方法
+                                long currentTime = System.currentTimeMillis();
+                                long messageTimestamp = record.timestamp();
+                                long latency = currentTime - messageTimestamp;
+                                metricsCollector.updateTopicLatency(record.topic(), latency, latency, latency); // 使用相同的值作为P50、P95和P99
+                            }
                         }
                     });
                 }
