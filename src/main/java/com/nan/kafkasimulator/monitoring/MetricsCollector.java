@@ -9,7 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 监控指标收集器
  */
 public class MetricsCollector {
-    // private static final Logger LOGGER = Logger.getLogger(MetricsCollector.class.getName());
+    // private static final Logger LOGGER =
+    // Logger.getLogger(MetricsCollector.class.getName());
 
     // 存储生产者吞吐量数据
     private final Map<String, Double> producerThroughputMap = new ConcurrentHashMap<>();
@@ -40,36 +41,41 @@ public class MetricsCollector {
     /**
      * 收集吞吐量数据
      */
-    public ThroughputData collectThroughputData() {
+    public ThroughputData collectThroughputData(Double collectionIntervalSeconds) {
         long timestamp = System.currentTimeMillis();
 
         // 聚合生产者和消费者的吞吐量数据
         Map<String, Double> topicThroughput = new HashMap<>();
 
-        // 合并生产者吞吐量数据
+        // 合并生产者吞吐量数据并计算每秒消息率
+        Map<String, Double> producerThroughputRate = new HashMap<>();
         for (Map.Entry<String, Double> entry : producerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
                 String topic = parts[0];
-                topicThroughput.merge(topic, entry.getValue(), Double::sum);
+                double messagesPerSecond = entry.getValue() / collectionIntervalSeconds;
+                topicThroughput.merge(topic, messagesPerSecond, Double::sum);
+                producerThroughputRate.put(entry.getKey(), messagesPerSecond);
             }
         }
 
-        // 合并消费者吞吐量数据
+        // 合并消费者吞吐量数据并计算每秒消息率
+        Map<String, Double> consumerThroughputRate = new HashMap<>();
         for (Map.Entry<String, Double> entry : consumerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
                 String topic = parts[0];
-                topicThroughput.merge(topic, entry.getValue(), Double::sum);
+                double messagesPerSecond = entry.getValue() / collectionIntervalSeconds;
+                topicThroughput.merge(topic, messagesPerSecond, Double::sum);
+                consumerThroughputRate.put(entry.getKey(), messagesPerSecond);
             }
         }
 
         return new ThroughputData(
-            topicThroughput,
-            new HashMap<>(producerThroughputMap),
-            new HashMap<>(consumerThroughputMap),
-            timestamp
-        );
+                topicThroughput,
+                producerThroughputRate,
+                consumerThroughputRate,
+                timestamp);
     }
 
     /**
@@ -79,52 +85,39 @@ public class MetricsCollector {
         long timestamp = System.currentTimeMillis();
 
         return new LatencyData(
-            new HashMap<>(topicLatencyData.get("p50")),
-            new HashMap<>(topicLatencyData.get("p95")),
-            new HashMap<>(topicLatencyData.get("p99")),
-            timestamp
-        );
+                new HashMap<>(topicLatencyData.get("p50")),
+                new HashMap<>(topicLatencyData.get("p95")),
+                new HashMap<>(topicLatencyData.get("p99")),
+                timestamp);
     }
 
     /**
      * 收集Topic吞吐量数据
      */
-    public TopicThroughputData collectTopicThroughputData() {
+    public TopicThroughputData collectTopicThroughputData(double collectionIntervalSeconds) {
         long timestamp = System.currentTimeMillis();
 
         // 聚合Topic吞吐量数据
         Map<String, Double> topicMessagesPerSecond = new HashMap<>();
         Map<String, Double> topicBytesPerSecond = new HashMap<>();
 
-        // 只合并生产者的吞吐量数据
+        // 合并生产者的吞吐量数据并计算每秒消息率
+        // 对于Kafka集群的吞吐量，通常是以生产者（Producer）每秒生产的数据量来衡量的
         for (Map.Entry<String, Double> entry : producerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
                 String topic = parts[0];
-                topicMessagesPerSecond.merge(topic, entry.getValue(), Double::sum);
+                double messagesPerSecond = entry.getValue() / collectionIntervalSeconds;
+                topicMessagesPerSecond.merge(topic, messagesPerSecond, Double::sum);
                 // 字节/秒数据暂不实现
                 topicBytesPerSecond.putIfAbsent(topic, 0.0);
             }
         }
-
-        // 注释掉消费者吞吐量数据的合并
-        /*
-        for (Map.Entry<String, Double> entry : consumerThroughputMap.entrySet()) {
-            String[] parts = entry.getKey().split(":");
-            if (parts.length == 2) {
-                String topic = parts[0];
-                topicMessagesPerSecond.merge(topic, entry.getValue(), Double::sum);
-                // 字节/秒数据暂不实现
-                topicBytesPerSecond.putIfAbsent(topic, 0.0);
-            }
-        }
-        */
 
         return new TopicThroughputData(
-            topicMessagesPerSecond,
-            topicBytesPerSecond,
-            timestamp
-        );
+                topicMessagesPerSecond,
+                topicBytesPerSecond,
+                timestamp);
     }
 
     /**
@@ -134,29 +127,28 @@ public class MetricsCollector {
         long timestamp = System.currentTimeMillis();
 
         return new BrokerMetricsData(
-            new HashMap<>(brokerMetricsData.get("cpu")),
-            new HashMap<>(brokerMetricsData.get("memory")),
-            new HashMap<>(brokerMetricsData.get("disk")),
-            new HashMap<>(brokerMetricsData.get("incoming")),
-            new HashMap<>(brokerMetricsData.get("outgoing")),
-            timestamp
-        );
+                new HashMap<>(brokerMetricsData.get("cpu")),
+                new HashMap<>(brokerMetricsData.get("memory")),
+                new HashMap<>(brokerMetricsData.get("disk")),
+                new HashMap<>(brokerMetricsData.get("incoming")),
+                new HashMap<>(brokerMetricsData.get("outgoing")),
+                timestamp);
     }
 
     /**
      * 更新生产者吞吐量数据
      */
-    public void updateProducerThroughput(String topic, String producerId, double messagesPerSecond) {
+    public void updateProducerThroughput(String topic, String producerId, double messageCountToAdd) {
         String key = topic + ":" + producerId;
-        producerThroughputMap.put(key, messagesPerSecond);
+        producerThroughputMap.merge(key, messageCountToAdd, Double::sum);
     }
 
     /**
      * 更新消费者吞吐量数据
      */
-    public void updateConsumerThroughput(String topic, String consumerGroupId, double messagesPerSecond) {
+    public void updateConsumerThroughput(String topic, String consumerGroupId, double messageCountToAdd) {
         String key = topic + ":" + consumerGroupId;
-        consumerThroughputMap.put(key, messagesPerSecond);
+        consumerThroughputMap.merge(key, messageCountToAdd, Double::sum);
     }
 
     /**
@@ -171,8 +163,8 @@ public class MetricsCollector {
     /**
      * 更新Broker指标数据
      */
-    public void updateBrokerMetrics(String brokerId, double cpuUsage, double memoryUsage, 
-                                   double diskUsage, double incomingByteRate, double outgoingByteRate) {
+    public void updateBrokerMetrics(String brokerId, double cpuUsage, double memoryUsage,
+            double diskUsage, double incomingByteRate, double outgoingByteRate) {
         brokerMetricsData.get("cpu").put(brokerId, cpuUsage);
         brokerMetricsData.get("memory").put(brokerId, memoryUsage);
         brokerMetricsData.get("disk").put(brokerId, diskUsage);
@@ -190,7 +182,7 @@ public class MetricsCollector {
         topicLatencyData.values().forEach(Map::clear);
         brokerMetricsData.values().forEach(Map::clear);
     }
-    
+
     /**
      * 重置吞吐量数据，在每次收集数据后调用
      */

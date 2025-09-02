@@ -41,15 +41,24 @@ public class MonitoringDashboardController implements Initializable {
     private final Map<String, XYChart.Series<String, Number>> throughputSeriesMap = new ConcurrentHashMap<>();
     private final Map<String, XYChart.Series<String, Number>> latencySeriesMap = new ConcurrentHashMap<>();
 
-    @FXML private Label titleLabel;
-    @FXML private TitledPane throughputPane;
-    @FXML private LineChart<String, Number> systemThroughputChart;
-    @FXML private BarChart<String, Number> topicThroughputChart;
-    @FXML private TitledPane latencyPane;
-    @FXML private LineChart<String, Number> e2eLatencyChart;
-    @FXML private BarChart<String, Number> latencyDistributionChart;
-    @FXML private TitledPane brokerMetricsPane;
-    @FXML private GridPane brokerMetricsGrid;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private TitledPane throughputPane;
+    @FXML
+    private LineChart<String, Number> systemThroughputChart;
+    @FXML
+    private BarChart<String, Number> topicThroughputChart;
+    @FXML
+    private TitledPane latencyPane;
+    @FXML
+    private LineChart<String, Number> e2eLatencyChart;
+    @FXML
+    private BarChart<String, Number> latencyDistributionChart;
+    @FXML
+    private TitledPane brokerMetricsPane;
+    @FXML
+    private GridPane brokerMetricsGrid;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -58,8 +67,8 @@ public class MonitoringDashboardController implements Initializable {
         // 创建并启动监控服务
         monitoringService = new MonitoringService();
         monitoringService.setOnSucceeded(this::updateCharts);
-        monitoringService.setOnFailed(event -> 
-            LOGGER.log(Level.SEVERE, "Monitoring service failed", monitoringService.getException()));
+        monitoringService.setOnFailed(
+                event -> LOGGER.log(Level.SEVERE, "Monitoring service failed", monitoringService.getException()));
         monitoringService.start();
     }
 
@@ -67,10 +76,11 @@ public class MonitoringDashboardController implements Initializable {
         // 初始化系统吞吐量图表
         systemThroughputChart.setTitle("System Throughput");
         systemThroughputChart.setCreateSymbols(false);
+        systemThroughputChart.setAnimated(false);
 
         // 初始化Topic吞吐量柱状图
         topicThroughputChart.setTitle("Topic Throughput");
-
+        topicThroughputChart.setAnimated(false);
 
         // 初始化端到端延迟图表
         e2eLatencyChart.setTitle("End-to-End Latency");
@@ -78,7 +88,7 @@ public class MonitoringDashboardController implements Initializable {
 
         // 初始化延迟分布柱状图
         latencyDistributionChart.setTitle("Latency Distribution");
-        //latencyDistributionChart.setAnimated(false);
+        // latencyDistributionChart.setAnimated(false);
 
         // 初始化Broker指标网格
         initializeBrokerMetricsGrid();
@@ -121,16 +131,16 @@ public class MonitoringDashboardController implements Initializable {
 
         // 更新系统总吞吐量
         double totalThroughput = data.getTopicThroughput().values().stream()
-            .mapToDouble(Double::doubleValue)
-            .sum();
+                .mapToDouble(Double::doubleValue)
+                .sum();
 
         XYChart.Series<String, Number> totalSeries = throughputSeriesMap.computeIfAbsent(
-            "Total", k -> {
-                XYChart.Series<String, Number> series = new XYChart.Series<>();
-                series.setName("Total");
-                systemThroughputChart.getData().add(series);
-                return series;
-            });
+                "Total", k -> {
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    series.setName("Total");
+                    systemThroughputChart.getData().add(series);
+                    return series;
+                });
 
         // 添加新数据点
         totalSeries.getData().add(new XYChart.Data<>(timeLabel, totalThroughput));
@@ -154,12 +164,12 @@ public class MonitoringDashboardController implements Initializable {
             String seriesName = topic + " P50";
 
             XYChart.Series<String, Number> series = latencySeriesMap.computeIfAbsent(
-                seriesName, k -> {
-                    XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
-                    newSeries.setName(seriesName);
-                    e2eLatencyChart.getData().add(newSeries);
-                    return newSeries;
-                });
+                    seriesName, k -> {
+                        XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
+                        newSeries.setName(seriesName);
+                        e2eLatencyChart.getData().add(newSeries);
+                        return newSeries;
+                    });
 
             // 添加新数据点
             series.getData().add(new XYChart.Data<>(timeLabel, entry.getValue()));
@@ -188,7 +198,7 @@ public class MonitoringDashboardController implements Initializable {
         for (Map.Entry<String, Double> entry : data.getTopicMessagesPerSecond().entrySet()) {
             series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
         }
-        if(series.getData().size() > 0) {
+        if (series.getData().size() > 0) {
             topicThroughputChart.getData().add(series);
         }
     }
@@ -205,8 +215,10 @@ public class MonitoringDashboardController implements Initializable {
             brokerMetricsGrid.add(new Label(String.format("%.2f", data.getBrokerCpuUsage().get(brokerId))), 1, row);
             brokerMetricsGrid.add(new Label(String.format("%.2f", data.getBrokerMemoryUsage().get(brokerId))), 2, row);
             brokerMetricsGrid.add(new Label(String.format("%.2f", data.getBrokerDiskUsage().get(brokerId))), 3, row);
-            brokerMetricsGrid.add(new Label(String.format("%.2f", data.getBrokerIncomingByteRate().get(brokerId) / 1024)), 4, row);
-            brokerMetricsGrid.add(new Label(String.format("%.2f", data.getBrokerOutgoingByteRate().get(brokerId) / 1024)), 5, row);
+            brokerMetricsGrid.add(
+                    new Label(String.format("%.2f", data.getBrokerIncomingByteRate().get(brokerId) / 1024)), 4, row);
+            brokerMetricsGrid.add(
+                    new Label(String.format("%.2f", data.getBrokerOutgoingByteRate().get(brokerId) / 1024)), 5, row);
             row++;
         }
     }
@@ -216,21 +228,22 @@ public class MonitoringDashboardController implements Initializable {
             // 确保X轴显示最新的数据
             xAxis.setAutoRanging(false);
             xAxis.invalidateRange(series.getData().stream()
-                .map(data -> data.getXValue())
-                .toList());
+                    .map(data -> data.getXValue())
+                    .toList());
         }
     }
 
     private String formatTime(long timestamp) {
         // 简单的时间格式化，只显示时分秒
         java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
-            java.time.Instant.ofEpochMilli(timestamp), 
-            java.time.ZoneId.systemDefault());
+                java.time.Instant.ofEpochMilli(timestamp),
+                java.time.ZoneId.systemDefault());
         return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
     /**
      * 设置连接状态
+     * 
      * @param connected 是否连接
      */
     public void setConnected(boolean connected) {
@@ -238,15 +251,16 @@ public class MonitoringDashboardController implements Initializable {
             if (monitoringService != null && monitoringService.getState() == javafx.concurrent.Service.State.READY) {
                 monitoringService.start();
             }
-            
+
             // 启动Broker指标收集器
             if (brokerMetricsCollector == null) {
                 try {
                     // 获取AdminClient配置
                     Properties adminClientConfig = new Properties();
-                    adminClientConfig.put("bootstrap.servers", 
-                        com.nan.kafkasimulator.ControllerRegistry.getConnectionManagerController().getBootstrapServers());
-                    
+                    adminClientConfig.put("bootstrap.servers",
+                            com.nan.kafkasimulator.ControllerRegistry.getConnectionManagerController()
+                                    .getBootstrapServers());
+
                     brokerMetricsCollector = new BrokerMetricsCollector(adminClientConfig);
                     LOGGER.info("Broker metrics collector started");
                 } catch (Exception e) {
@@ -257,7 +271,7 @@ public class MonitoringDashboardController implements Initializable {
             if (monitoringService != null && monitoringService.isRunning()) {
                 monitoringService.cancel();
             }
-            
+
             // 停止Broker指标收集器
             if (brokerMetricsCollector != null) {
                 brokerMetricsCollector.shutdown();
@@ -266,7 +280,7 @@ public class MonitoringDashboardController implements Initializable {
             }
         }
     }
-    
+
     /**
      * 清理资源
      */
@@ -274,7 +288,7 @@ public class MonitoringDashboardController implements Initializable {
         if (monitoringService != null && monitoringService.isRunning()) {
             monitoringService.cancel();
         }
-        
+
         // 停止Broker指标收集器
         if (brokerMetricsCollector != null) {
             brokerMetricsCollector.shutdown();

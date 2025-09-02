@@ -81,7 +81,7 @@ public class ConsumerInstance implements Runnable {
                     log("Consumer instance '" + instanceId + "' has resumed pulling.");
                 }
 
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 
                 // Check if there is a manual commit request
                 if (requestManualCommit.get()) {

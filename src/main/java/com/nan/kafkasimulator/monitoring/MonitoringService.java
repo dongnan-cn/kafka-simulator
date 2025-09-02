@@ -18,10 +18,11 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
 
     private final MetricsCollector metricsCollector;
     private final MetricsDatabase metricsDatabase;
+    private final Double collectionPeriod = 5.0; // 每5秒收集一次数据
 
     public MonitoringService() {
         super();
-        setPeriod(Duration.seconds(5)); // 每5秒更新一次
+        setPeriod(Duration.seconds(collectionPeriod)); // 每5秒更新一次
 
         try {
             this.metricsDatabase = MetricsDatabase.getInstance();
@@ -39,9 +40,10 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
             protected MonitoringData call() throws Exception {
                 try {
                     // 收集所有监控数据
-                    ThroughputData throughputData = metricsCollector.collectThroughputData();
+                    ThroughputData throughputData = metricsCollector.collectThroughputData(collectionPeriod);
                     LatencyData latencyData = metricsCollector.collectLatencyData();
-                    TopicThroughputData topicThroughputData = metricsCollector.collectTopicThroughputData();
+                    TopicThroughputData topicThroughputData = metricsCollector
+                            .collectTopicThroughputData(collectionPeriod);
                     BrokerMetricsData brokerMetricsData = metricsCollector.collectBrokerMetricsData();
 
                     // 保存到数据库
@@ -49,7 +51,7 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
 
                     // 重置吞吐量数据，以便下次收集新的数据
                     metricsCollector.resetThroughputData();
-                    
+
                     // 返回聚合的监控数据
                     return new MonitoringData(throughputData, latencyData, topicThroughputData, brokerMetricsData);
                 } catch (Exception e) {
@@ -58,31 +60,33 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
                 }
             }
 
-            private void saveMetricsToDatabase(ThroughputData throughputData, LatencyData latencyData, 
-                                             BrokerMetricsData brokerMetricsData) throws SQLException {
+            private void saveMetricsToDatabase(ThroughputData throughputData, LatencyData latencyData,
+                    BrokerMetricsData brokerMetricsData) throws SQLException {
                 long timestamp = System.currentTimeMillis();
 
                 // 保存吞吐量数据
                 for (Map.Entry<String, Double> entry : throughputData.getTopicThroughput().entrySet()) {
-                    metricsDatabase.saveThroughputMetric(new com.nan.kafkasimulator.monitoring.database.models.ThroughputMetric(
-                        timestamp,
-                        entry.getKey(),
-                        "topic-aggregate",
-                        entry.getValue(),
-                        0.0 // 字节/秒数据暂不实现
+                    metricsDatabase.saveThroughputMetric(
+                            new com.nan.kafkasimulator.monitoring.database.models.ThroughputMetric(
+                                    timestamp,
+                                    entry.getKey(),
+                                    "topic-aggregate",
+                                    entry.getValue(),
+                                    0.0 // 字节/秒数据暂不实现
                     ));
                 }
 
                 // 保存延迟数据
                 for (Map.Entry<String, Long> entry : latencyData.getTopicP50Latency().entrySet()) {
                     String topic = entry.getKey();
-                    metricsDatabase.saveLatencyMetric(new com.nan.kafkasimulator.monitoring.database.models.LatencyMetric(
-                        timestamp,
-                        topic,
-                        entry.getValue(),
-                        latencyData.getTopicP95Latency().get(topic),
-                        latencyData.getTopicP99Latency().get(topic),
-                        0L // 最大延迟暂不实现
+                    metricsDatabase
+                            .saveLatencyMetric(new com.nan.kafkasimulator.monitoring.database.models.LatencyMetric(
+                                    timestamp,
+                                    topic,
+                                    entry.getValue(),
+                                    latencyData.getTopicP95Latency().get(topic),
+                                    latencyData.getTopicP99Latency().get(topic),
+                                    0L // 最大延迟暂不实现
                     ));
                 }
 
@@ -90,15 +94,15 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
                 for (Map.Entry<String, Double> entry : brokerMetricsData.getBrokerCpuUsage().entrySet()) {
                     String brokerId = entry.getKey();
                     metricsDatabase.saveBrokerMetric(new com.nan.kafkasimulator.monitoring.database.models.BrokerMetric(
-                        timestamp,
-                        brokerId,
-                        entry.getValue(),
-                        brokerMetricsData.getBrokerMemoryUsage().get(brokerId),
-                        brokerMetricsData.getBrokerDiskUsage().get(brokerId),
-                        brokerMetricsData.getBrokerIncomingByteRate().get(brokerId),
-                        brokerMetricsData.getBrokerOutgoingByteRate().get(brokerId),
-                        0.0, // 请求速率暂不实现
-                        0.0  // 请求延迟暂不实现
+                            timestamp,
+                            brokerId,
+                            entry.getValue(),
+                            brokerMetricsData.getBrokerMemoryUsage().get(brokerId),
+                            brokerMetricsData.getBrokerDiskUsage().get(brokerId),
+                            brokerMetricsData.getBrokerIncomingByteRate().get(brokerId),
+                            brokerMetricsData.getBrokerOutgoingByteRate().get(brokerId),
+                            0.0, // 请求速率暂不实现
+                            0.0 // 请求延迟暂不实现
                     ));
                 }
             }

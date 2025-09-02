@@ -105,7 +105,7 @@ public class ProducerTabController implements Initializable {
     public void initialize(URL arg0, ResourceBundle arg1) {
         // 初始化SchemaManager
         schemaManager = SchemaManager.getInstance();
-        
+
         // 初始化MetricsCollector
         metricsCollector = MetricsCollectorSingleton.getInstance();
 
@@ -189,15 +189,19 @@ public class ProducerTabController implements Initializable {
         // 根据选择的数据类型决定使用哪种序列化器
         String dataType = dataTypeChoiceBox.getValue();
         if ("Avro".equals(dataType)) {
-            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "com.nan.kafkasimulator.avro.AvroSerializer");
+            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                    "com.nan.kafkasimulator.avro.AvroSerializer");
         } else {
             producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         }
 
         producerProps.put(ProducerConfig.ACKS_CONFIG, acksChoiceBox.getValue());
-        producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.parseInt(batchSizeField.getText().isEmpty() ? "0" : batchSizeField.getText()));
-        producerProps.put(ProducerConfig.LINGER_MS_CONFIG, Integer.parseInt(lingerMsField.getText().isEmpty() ? "0" : lingerMsField.getText()));
-        producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, Long.parseLong(bufferMemoryField.getText().isEmpty() ? "0" : bufferMemoryField.getText()));
+        producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG,
+                Integer.parseInt(batchSizeField.getText().isEmpty() ? "0" : batchSizeField.getText()));
+        producerProps.put(ProducerConfig.LINGER_MS_CONFIG,
+                Integer.parseInt(lingerMsField.getText().isEmpty() ? "0" : lingerMsField.getText()));
+        producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG,
+                Long.parseLong(bufferMemoryField.getText().isEmpty() ? "0" : bufferMemoryField.getText()));
 
         this.producer = new KafkaProducer<>(producerProps);
     }
@@ -286,18 +290,8 @@ public class ProducerTabController implements Initializable {
                         log(String.format("  - Topic: %s", metadata.topic()));
                         log(String.format("  - Partition: %d", metadata.partition()));
                         log(String.format("  - Offset: %d", metadata.offset()));
-                        
-                        // 更新监控数据
-                        if (metricsCollector != null) {
-                            try {
-                                // 获取用户设置的每秒消息数
-                                double msgPerSecond = Double.parseDouble(messagesPerSecondField.getText());
-                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, msgPerSecond);
-                            } catch (NumberFormatException e) {
-                                // 如果解析失败，使用默认值1.0
-                                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
-                            }
-                        }
+
+                        updateThroughput();
                     } else {
                         log(String.format("Message sending failed: %s", exception.getMessage()));
                     }
@@ -305,6 +299,18 @@ public class ProducerTabController implements Initializable {
             });
         } catch (Exception e) {
             log(String.format("消息发送失败: %s", e.getMessage()));
+        }
+    }
+
+    private void updateThroughput() {
+        if (metricsCollector != null) {
+            try {
+                // 手动发送消息时，每秒消息数设置为1.0
+                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 1.0);
+            } catch (NumberFormatException e) {
+                // 如果解析失败，使用默认值0.0
+                metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
+            }
         }
     }
 
@@ -384,17 +390,8 @@ public class ProducerTabController implements Initializable {
                         sentCount.incrementAndGet();
                         Platform.runLater(() -> {
                             sentCountLabel.setText(String.format("已发送: %d", sentCount.get()));
-                            
-                            // 更新监控数据
-                            if (metricsCollector != null) {
-                                try {
-                                    // 获取用户设置的每秒消息数
-                                    double msgPerSecond = Double.parseDouble(messagesPerSecondField.getText());
-                                    metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, msgPerSecond);
-                                } catch (NumberFormatException e) {
-                                    metricsCollector.updateProducerThroughput(topicName, "producer-" + topicName, 0.0);
-                                }
-                            }
+
+                            updateThroughput();
                         });
                     } else {
                         Platform.runLater(() -> log(String.format("发送消息失败: %s", exception.getMessage())));
@@ -511,6 +508,7 @@ public class ProducerTabController implements Initializable {
 
     /**
      * 根据Avro Schema生成随机的JSON消息
+     * 
      * @param schemaName Schema名称
      * @return 符合Schema的随机JSON消息
      */
@@ -539,7 +537,8 @@ public class ProducerTabController implements Initializable {
     private void onManageSchemaButtonClick() {
         try {
             // 加载FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/nan/kafkasimulator/fxml/schema-management.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/nan/kafkasimulator/fxml/schema-management.fxml"));
             Parent root = loader.load();
 
             // 创建对话框
