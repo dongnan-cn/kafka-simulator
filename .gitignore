@@ -2,4 +2,5 @@ target/
 .vscode/**
 .VSCodeCounter/**
 metrics.db
+kafka_simulator.log.*
 
