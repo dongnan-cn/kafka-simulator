@@ -154,7 +154,6 @@ public class MonitoringDashboardController implements Initializable {
 
         // 更新X轴范围
         updateXAxisRange((CategoryAxis) systemThroughputChart.getXAxis(), totalSeries);
-        System.out.println("Updated X-axis range");
     }
 
     private void updateLatencyCharts(LatencyData data) {

@@ -48,6 +48,7 @@ public class MetricsCollector {
         Map<String, Double> topicThroughput = new HashMap<>();
 
         // 合并生产者吞吐量数据并计算每秒消息率
+        // 对于Kafka集群的吞吐量，通常是以生产者（Producer）每秒生产的数据量来衡量的
         Map<String, Double> producerThroughputRate = new HashMap<>();
         for (Map.Entry<String, Double> entry : producerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
@@ -64,9 +65,9 @@ public class MetricsCollector {
         for (Map.Entry<String, Double> entry : consumerThroughputMap.entrySet()) {
             String[] parts = entry.getKey().split(":");
             if (parts.length == 2) {
-                String topic = parts[0];
+                //String topic = parts[0];
                 double messagesPerSecond = entry.getValue() / collectionIntervalSeconds;
-                topicThroughput.merge(topic, messagesPerSecond, Double::sum);
+                //topicThroughput.merge(topic, messagesPerSecond, Double::sum);
                 consumerThroughputRate.put(entry.getKey(), messagesPerSecond);
             }
         }
