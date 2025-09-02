@@ -257,7 +257,7 @@ public class ProducerTabController implements Initializable {
         String dataType = dataTypeChoiceBox.getValue();
 
         try {
-            if ("Avro".equals(dataType)) {
+            if ("Avro".equalsIgnoreCase(dataType)) {
                 // 处理Avro消息
                 String schemaName = avroSchemaChoiceBox.getValue();
                 if (schemaName == null || schemaName.trim().isEmpty()) {

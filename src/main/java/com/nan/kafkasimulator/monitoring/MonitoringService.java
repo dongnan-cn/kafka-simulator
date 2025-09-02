@@ -40,10 +40,10 @@ public class MonitoringService extends ScheduledService<MonitoringData> {
             protected MonitoringData call() throws Exception {
                 try {
                     // 收集所有监控数据
-                    ThroughputData throughputData = metricsCollector.collectThroughputData(collectionPeriod);
+                    ThroughputData throughputData = metricsCollector.collectThroughputData(collectionPeriod.doubleValue());
                     LatencyData latencyData = metricsCollector.collectLatencyData();
                     TopicThroughputData topicThroughputData = metricsCollector
-                            .collectTopicThroughputData(collectionPeriod);
+                            .collectTopicThroughputData(collectionPeriod.doubleValue());
                     BrokerMetricsData brokerMetricsData = metricsCollector.collectBrokerMetricsData();
 
                     // 保存到数据库

@@ -19,6 +19,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
 
+import static com.nan.kafkasimulator.utils.Logger.log;
+
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
@@ -152,6 +154,7 @@ public class MonitoringDashboardController implements Initializable {
 
         // 更新X轴范围
         updateXAxisRange((CategoryAxis) systemThroughputChart.getXAxis(), totalSeries);
+        System.out.println("Updated X-axis range");
     }
 
     private void updateLatencyCharts(LatencyData data) {
@@ -225,11 +228,15 @@ public class MonitoringDashboardController implements Initializable {
 
     private void updateXAxisRange(CategoryAxis xAxis, XYChart.Series<String, Number> series) {
         if (!series.getData().isEmpty()) {
-            // 确保X轴显示最新的数据
             xAxis.setAutoRanging(false);
-            xAxis.invalidateRange(series.getData().stream()
-                    .map(data -> data.getXValue())
-                    .toList());
+            xAxis.getCategories().clear();
+            for (XYChart.Data<String, Number> data : series.getData()) {
+                xAxis.getCategories().add(data.getXValue());
+            }
+            // 强制图表重绘
+            systemThroughputChart.layout();
+        } else {
+            log("No data points to update X-axis range");
         }
     }
 

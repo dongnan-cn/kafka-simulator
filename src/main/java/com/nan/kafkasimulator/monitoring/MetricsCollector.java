@@ -41,7 +41,7 @@ public class MetricsCollector {
     /**
      * 收集吞吐量数据
      */
-    public ThroughputData collectThroughputData(Double collectionIntervalSeconds) {
+    public ThroughputData collectThroughputData(double collectionIntervalSeconds) {
         long timestamp = System.currentTimeMillis();
 
         // 聚合生产者和消费者的吞吐量数据
@@ -70,7 +70,6 @@ public class MetricsCollector {
                 consumerThroughputRate.put(entry.getKey(), messagesPerSecond);
             }
         }
-
         return new ThroughputData(
                 topicThroughput,
                 producerThroughputRate,
