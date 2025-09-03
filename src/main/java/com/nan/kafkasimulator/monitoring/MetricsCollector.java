@@ -84,10 +84,40 @@ public class MetricsCollector {
     public LatencyData collectLatencyData() {
         long timestamp = System.currentTimeMillis();
 
+        // 创建延迟分布数据
+        Map<String, Integer> latencyDistribution = new HashMap<>();
+        latencyDistribution.put("0-10ms", 0);
+        latencyDistribution.put("10-50ms", 0);
+        latencyDistribution.put("50-100ms", 0);
+        latencyDistribution.put("100-500ms", 0);
+        latencyDistribution.put("500-1000ms", 0);
+        latencyDistribution.put(">1000ms", 0);
+
+        // 根据收集到的延迟数据填充分布
+        // 这里我们使用P99延迟数据来模拟分布
+        for (Map.Entry<String, Long> entry : topicLatencyData.get("p99").entrySet()) {
+            long latency = entry.getValue();
+
+            if (latency <= 10) {
+                latencyDistribution.put("0-10ms", latencyDistribution.get("0-10ms") + 1);
+            } else if (latency <= 50) {
+                latencyDistribution.put("10-50ms", latencyDistribution.get("10-50ms") + 1);
+            } else if (latency <= 100) {
+                latencyDistribution.put("50-100ms", latencyDistribution.get("50-100ms") + 1);
+            } else if (latency <= 500) {
+                latencyDistribution.put("100-500ms", latencyDistribution.get("100-500ms") + 1);
+            } else if (latency <= 1000) {
+                latencyDistribution.put("500-1000ms", latencyDistribution.get("500-1000ms") + 1);
+            } else {
+                latencyDistribution.put(">1000ms", latencyDistribution.get(">1000ms") + 1);
+            }
+        }
+
         return new LatencyData(
                 new HashMap<>(topicLatencyData.get("p50")),
                 new HashMap<>(topicLatencyData.get("p95")),
                 new HashMap<>(topicLatencyData.get("p99")),
+                latencyDistribution,
                 timestamp);
     }
 

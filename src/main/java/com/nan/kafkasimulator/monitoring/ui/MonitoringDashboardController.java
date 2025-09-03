@@ -87,10 +87,11 @@ public class MonitoringDashboardController implements Initializable {
         // 初始化端到端延迟图表
         e2eLatencyChart.setTitle("End-to-End Latency");
         e2eLatencyChart.setCreateSymbols(false);
+        e2eLatencyChart.setAnimated(false);
 
         // 初始化延迟分布柱状图
         latencyDistributionChart.setTitle("Latency Distribution");
-        // latencyDistributionChart.setAnimated(false);
+        latencyDistributionChart.setAnimated(false);
 
         // 初始化Broker指标网格
         initializeBrokerMetricsGrid();
@@ -118,6 +119,9 @@ public class MonitoringDashboardController implements Initializable {
 
             // 更新延迟图表
             updateLatencyCharts(data.getLatencyData());
+
+            // 更新延迟分布图表
+            updateLatencyDistributionChart(data.getLatencyData());
 
             // 更新Topic吞吐量柱状图
             updateTopicThroughputChart(data.getTopicThroughputData());
@@ -185,6 +189,32 @@ public class MonitoringDashboardController implements Initializable {
         // 更新X轴范围
         for (XYChart.Series<String, Number> series : e2eLatencyChart.getData()) {
             updateXAxisRange((CategoryAxis) e2eLatencyChart.getXAxis(), series);
+        }
+    }
+
+    private void updateLatencyDistributionChart(LatencyData data) {
+        // 清空现有数据
+        latencyDistributionChart.getData().clear();
+
+        // 添加调试日志
+        System.out.println("Updating latency distribution chart with data: " + data.getLatencyDistribution());
+
+        // 创建新的数据系列
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Message Count");
+
+        // 添加延迟分布数据
+        for (Map.Entry<String, Integer> entry : data.getLatencyDistribution().entrySet()) {
+            series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+            System.out.println("Added latency distribution data: " + entry.getKey() + " = " + entry.getValue());
+        }
+
+        // 将系列添加到图表
+        if (!series.getData().isEmpty()) {
+            latencyDistributionChart.getData().add(series);
+            System.out.println("Added series to latency distribution chart");
+        } else {
+            System.out.println("No data to add to latency distribution chart");
         }
     }
 
