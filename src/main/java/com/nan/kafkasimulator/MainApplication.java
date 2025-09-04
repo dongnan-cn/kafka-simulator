@@ -30,6 +30,7 @@ public class MainApplication extends Application {
         stage.setOnCloseRequest(event -> {
             System.out.println("Window closing, performing cleanup...");
             controller.cleanup();
+            com.nan.kafkasimulator.utils.Logger.shutdown();
         });
         stage.show();
     }

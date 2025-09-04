@@ -196,9 +196,6 @@ public class MonitoringDashboardController implements Initializable {
         // 清空现有数据
         latencyDistributionChart.getData().clear();
 
-        // 添加调试日志
-        System.out.println("Updating latency distribution chart with data: " + data.getLatencyDistribution());
-
         // 创建新的数据系列
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Message Count");
@@ -206,16 +203,12 @@ public class MonitoringDashboardController implements Initializable {
         // 添加延迟分布数据
         for (Map.Entry<String, Integer> entry : data.getLatencyDistribution().entrySet()) {
             series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
-            System.out.println("Added latency distribution data: " + entry.getKey() + " = " + entry.getValue());
         }
 
         // 将系列添加到图表
         if (!series.getData().isEmpty()) {
             latencyDistributionChart.getData().add(series);
-            System.out.println("Added series to latency distribution chart");
-        } else {
-            System.out.println("No data to add to latency distribution chart");
-        }
+        } 
     }
 
     private void updateTopicThroughputChart(TopicThroughputData data) {

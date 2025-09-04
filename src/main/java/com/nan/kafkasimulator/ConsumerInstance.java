@@ -18,6 +18,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import static com.nan.kafkasimulator.utils.Logger.log;
 
 public class ConsumerInstance implements Runnable {
@@ -32,6 +34,12 @@ public class ConsumerInstance implements Runnable {
     private final boolean autoCommit;
     private final int autoCommitInterval;
     private MetricsCollector metricsCollector;
+
+    // 消息队列和清理机制相关字段
+    private final ConcurrentLinkedQueue<String> messageQueue = new ConcurrentLinkedQueue<>();
+    private final int maxMessageCount = 100; // 最大保留消息数量
+    private ScheduledExecutorService cleanupScheduler; // 消息清理定时任务
+    private final AtomicInteger currentMessageCount = new AtomicInteger(0); // 当前消息计数器
 
     public ConsumerInstance(Properties props, String instanceId, List<String> topicNames, TextArea messagesArea) {
         this.consumer = new KafkaConsumer<>(props);
@@ -53,6 +61,9 @@ public class ConsumerInstance implements Runnable {
         if (autoCommit) {
             setupAutoCommit();
         }
+
+        // Set up message cleanup task
+        setupMessageCleanup();
     }
 
     @Override
@@ -111,8 +122,9 @@ public class ConsumerInstance implements Runnable {
                                     "Consumer: %s | Topic: %s | Partition: %d | Offset: %d | Type: %s | Key: %s | Value: %s%n",
                                     instanceId, record.topic(), record.partition(), record.offset(),
                                     messageType, record.key(), value);
-                            messagesArea.appendText(message);
-                            messagesArea.setScrollTop(Double.MAX_VALUE);
+
+                            // 添加消息到队列
+                            addMessageToQueue(message);
 
                             // 更新监控数据
                             if (metricsCollector != null) {
@@ -195,6 +207,19 @@ public class ConsumerInstance implements Runnable {
                 commitScheduler.shutdownNow();
             }
         }
+
+        // 停止消息清理任务
+        if (cleanupScheduler != null) {
+            cleanupScheduler.shutdown();
+            try {
+                if (!cleanupScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    cleanupScheduler.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                cleanupScheduler.shutdownNow();
+            }
+        }
+
         consumer.wakeup(); // Interrupt poll() method so that the thread can exit
     }
 
@@ -212,5 +237,76 @@ public class ConsumerInstance implements Runnable {
 
     public Set<TopicPartition> getAssignment() {
         return consumer.assignment();
+    }
+
+    /**
+     * 设置消息清理任务
+     */
+    private void setupMessageCleanup() {
+        cleanupScheduler = Executors.newSingleThreadScheduledExecutor();
+        // 每30秒执行一次消息清理
+        cleanupScheduler.scheduleAtFixedRate(this::cleanupOldMessages, 30, 30, TimeUnit.SECONDS);
+        log("Consumer instance '" + instanceId + "' has enabled message cleanup task.");
+    }
+
+    /**
+     * 添加消息到队列
+     * @param message 消息内容
+     */
+    private void addMessageToQueue(String message) {
+        messageQueue.offer(message);
+        int count = currentMessageCount.incrementAndGet();
+
+        // 如果消息数量超过最大值，立即触发清理
+        if (count > maxMessageCount) {
+            cleanupOldMessages();
+        }
+
+        // 更新TextArea显示
+        updateMessagesDisplay();
+    }
+
+    /**
+     * 清理旧消息
+     */
+    private void cleanupOldMessages() {
+        int currentCount = currentMessageCount.get();
+
+        // 如果当前消息数量超过最大值的80%，则清理一部分消息
+        if (currentCount > maxMessageCount * 0.8) {
+            int removeCount = (int) (currentCount * 0.3); // 移除30%的消息
+
+            Platform.runLater(() -> {
+                for (int i = 0; i < removeCount && !messageQueue.isEmpty(); i++) {
+                    String message = messageQueue.poll();
+                    if (message != null) {
+                        currentMessageCount.decrementAndGet();
+                    }
+                }
+
+                // 重新构建TextArea内容
+                updateMessagesDisplay();
+
+                log("Consumer instance '" + instanceId + "' has cleaned up " + removeCount + " old messages.");
+            });
+        }
+    }
+
+    /**
+     * 更新消息显示
+     */
+    private void updateMessagesDisplay() {
+        Platform.runLater(() -> {
+            // 清空TextArea
+            messagesArea.clear();
+
+            // 将队列中的所有消息重新添加到TextArea
+            for (String message : messageQueue) {
+                messagesArea.appendText(message);
+            }
+
+            // 滚动到底部
+            messagesArea.setScrollTop(Double.MAX_VALUE);
+        });
     }
 }
